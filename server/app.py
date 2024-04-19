@@ -1,14 +1,24 @@
 import os
 import subprocess
 
+from com.dtmilano.android.viewclient import ViewClient
 from flask import Flask, request, jsonify
 from ppadb.client import Client as AdbClient
-from com.dtmilano.android.viewclient import ViewClient
+from pymongo import MongoClient
 
 import openai
 
 app = Flask(__name__)
 openai.api_key = os.environ.get('API_KEY')
+
+# db 연동
+client = MongoClient(host='localhost', port=27017)
+# 'e2e_database' 데이터베이스 생성
+db = client['e2e_database']
+# 컬렉션 생성
+hierarchy = db.ui_hierarchy
+# 데이터베이스 확인
+print(client.list_database_names())
 
 # 시리얼 번호
 serial_no = None
@@ -43,16 +53,30 @@ def adb_connect():
 
         return jsonify()
 
-# 현재 계층 정보 추출
+# 현재 계층 정보 추출 및 DB에 저장
 @app.route('/current-view', methods=['POST'])
 def current_view():
     global serial_no
 
     if request.method == 'POST':
         vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
-        vc.traverse(transform=vc.traverseShowClassIdTextAndUniqueId)  # vc의 디바이스 UI 트리를 순회. 현재 UI 상태를 출력
+        hierarchy = vc.traverse(transform=vc.traverseShowClassIdTextAndUniqueId)  # vc의 디바이스 UI 트리를 순회. 현재 UI 상태를 출력
+        hierarchy.insert_one(hierarchy)
 
-        return jsonify()
+        return jsonify({'message': 'success'})
+
+# DB에 저장되어 있는 시나리오 불러오기
+@app.route('/load-scenario', methods=['GET'])
+def load_scenario():
+    global hierarchy
+
+    if request.method == 'GET':
+        documents = []
+        for doc in hierarchy.find():
+            doc['_id'] = str(doc['_id'])
+            documents.append(doc)
+
+        return jsonify(documents)
 
 # 클라이언트의 input을 전달받음
 @app.route('/test_gpt', methods=['POST'])
