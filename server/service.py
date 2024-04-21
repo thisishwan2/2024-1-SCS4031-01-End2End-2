@@ -5,10 +5,11 @@ import time
 from com.dtmilano.android.viewclient import ViewClient
 from flask import Flask, request, jsonify
 from ppadb.client import Client as AdbClient
-from pymongo import MongoClient
 import xml.etree.ElementTree as elemTree
 import boto3
 import openai
+
+from server import app
 
 #Parse XML
 tree = elemTree.parse('keys.xml')
@@ -17,13 +18,6 @@ AWS_ACCESS_KEY = tree.find('string[@name="AWS_ACCESS_KEY"]').text
 AWS_SECRET_KEY = tree.find('string[@name="AWS_SECRET_KEY"]').text
 BUCKET_NAME = tree.find('string[@name="BUCKET_NAME"]').text
 location = 'ap-northeast-2'
-
-# db 연동
-client = MongoClient(host='localhost', port=27017)
-# 'e2e_database' 데이터베이스 생성
-db = client['e2e_database']
-# 컬렉션 생성
-hierarchy = db.ui_hierarchy
 
 # 시리얼 번호
 serial_no = None
@@ -122,7 +116,7 @@ def start_adb_server():
 
 def current_view():
     global serial_no
-    global hierarchy
+    hierarchy = app.config['HIERARCHY']
 
     if request.method == 'POST':
         vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
@@ -157,7 +151,7 @@ def current_view():
 
 # 액션 저장
 def save_action():
-    global hierarchy
+    hierarchy = app.config['HIERARCHY']
 
     if request.method == 'POST':
         action = request.json['action']
@@ -173,7 +167,7 @@ def save_action():
 
 # # DB에 저장되어 있는 시나리오 불러오기
 def load_scenario():
-    global hierarchy
+    hierarchy = app.config['HIERARCHY']
 
     if request.method == 'GET':
         documents = []
