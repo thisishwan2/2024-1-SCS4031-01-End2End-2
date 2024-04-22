@@ -44,11 +44,14 @@ HierarchyDetail = api.model('HierarchyDetail', {
 })
 
 # 시나리오 전체를 로드하는 모델
-load_scenario = api.model('LoadScenario', {
-    'action': fields.Nested(ActionDetail, as_list=True, description='액션들의 리스트'),
-    'hierarchy': fields.Nested(HierarchyDetail, as_list=True, description='계층 구조의 리스트')
+LoadScenario = api.model('LoadScenario', {
+    'action': fields.Nested(api.model('Action', {
+        'actions': fields.List(fields.Nested(ActionDetail))
+    }), description='액션 디테일의 맵', attribute='action'),
+    'hierarchy': fields.Nested(api.model('Hierarchy', {
+        'hierarchies': fields.List(fields.Nested(HierarchyDetail))
+    }), description='계층 구조의 맵', attribute='hierarchy')
 })
-
 
 run_scenario = E2E.model('scenario', {
     'before_hierachy_id': fields.String(description = 'action 실행 전 계층 objectId', required = True, example = '1'),
@@ -103,7 +106,7 @@ class save_action(Resource):
 @E2E.route('/load-scenario')
 class load_scenario(Resource):
     # @E2E.expect(run_scenario)
-    @api.response(200, 'Success', load_scenario)  # 응답 모델 적용
+    @api.response(200, 'Success', LoadScenario)  # 응답 모델 적용
     def get(self):
         '''
         DB에 저장되어 있는 시나리오 불러오기
