@@ -9,4 +9,6 @@ from server import routes
 client = MongoClient(host='localhost', port=27017)
 db = client['e2e_database']
 hierarchy = db.ui_hierarchy
+action_collection = db.action_collection
 app.config['HIERARCHY'] = db.ui_hierarchy
+app.config['ACTION_COLLECTION'] = db.action_collection
