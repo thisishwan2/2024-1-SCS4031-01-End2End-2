@@ -51,9 +51,9 @@ load_scenario = api.model('LoadScenario', {
 
 
 run_scenario = E2E.model('scenario', {
-    'before_hierachy': fields.String(description = 'action 실행 전 계층 정보', required = True, example = 'ViewClient로 뽑은 계층'),
+    'before_hierachy_id': fields.String(description = 'action 실행 전 계층 objectId', required = True, example = '1'),
     'action': fields.String(description = '수행하고자 하는 action', required = True, example = '1번 id를 찾아서 클릭해줘'),
-    'after_hierachy': fields.String(description = 'action 실행 후 계층 정보', required = True, example = 'ViewClient로 뽑은 계층')
+    'after_hierachy_id': fields.String(description = 'action 실행 후 계층 objectId', required = True, example = '2')
 })
 run_scenario_response_model = api.model('RunScenarioResponse', {
     'result': fields.String(description='시나리오 실행 결과', required=True, example='success')

@@ -1,8 +1,10 @@
+import json
 import os
 import re
 import subprocess
 import time
 from pathlib import Path
+from bson.objectid import ObjectId
 from pymongo import ASCENDING
 
 from com.dtmilano.android.viewclient import ViewClient
@@ -202,13 +204,23 @@ def save_action():
 
 
 # 테스트 시나리오 실행
-def run_scenario(): # input, output 의논해보기
+def run_scenario():
     if request.method == 'POST':
-        before_hierachy = request.json['before_hierachy']
-        action = request.json['action']
-        after_hierachy = request.json['after_hierachy']
-
         hierarchy = app.config['HIERARCHY']
+
+        before_hierachy_id = request.json['before_hierachy_id']
+        action = request.json['action']
+        after_hierachy_id = request.json['after_hierachy_id']
+
+        # 전 후 계층 정보만 찾기
+        before_hierachy = hierarchy.find_one({'_id': ObjectId(str(before_hierachy_id))},
+                                             {'_id': 0, 'scenario_num': 0, 'task_num': 0, 'screenshot_url': 0})
+
+        after_hierachy = hierarchy.find_one({'_id': ObjectId(str(after_hierachy_id))},
+                                            {'_id': 0, 'scenario_num': 0, 'task_num': 0, 'screenshot_url': 0})
+
+        # print(before_hierachy)
+        # print(after_hierachy)
 
         # 시나리오 실행(before_hierachy 와 action을 GPT에게 입력 후 결과를 받아온다.
         view_id, run_func = infer_viewid(before_hierachy, action)
@@ -223,31 +235,31 @@ def infer_viewid(hierarchy, action):
     :param action: 수행하고자 하는 action
     :return: 추론된 view id, 실행할 함수
     '''
+    # 계층정보를 문자열로 변환
+    hierarchy_info = json.dumps(hierarchy, indent=4, ensure_ascii=False)  # 보기 좋게 포맷팅
+    print(hierarchy_info)
+    pre_prompt = "한국어로 친절하게 대답해줘. 그리고 알맞는 계층의 json key 값만 출력해줘\n\n"
+    prompt = f"{pre_prompt}UI 계층은 다음과 같아:\n{hierarchy_info}\n다음 액션을 수행해줘: {action}"
+
     # action을 GPT에 입력
     openai.api_key
-    pre_prompt = "한국어로 친절하게 대답해줘. 그리고 view ID만 출력해줘\n\n"
     response = openai.ChatCompletion.create(
         model="gpt-4-turbo",
         messages=[
             {"role": "system", "content": "You are a helpful code assistant."},
             {
                 "role": "user",
-                "content": [
-                    {"type": "text", "text": pre_prompt +
-                                             "ui 계층은 다음과 같아" + hierarchy +
-                                             "다음 액션을 수행해줘" + action
-                    }
-                ]
-            }
+                "content": prompt}
         ],
         max_tokens=3000,
         temperature=0.5
     )
+
     print(response)
     answer = response.choices[0].message.content.strip()
 
     # 추론된 view id를 반환
-    return answer
+    return answer, None
 
 
 
