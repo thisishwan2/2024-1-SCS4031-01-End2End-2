@@ -219,15 +219,12 @@ def run_scenario():
         after_hierachy = hierarchy.find_one({'_id': ObjectId(str(after_hierachy_id))},
                                             {'_id': 0, 'scenario_num': 0, 'task_num': 0, 'screenshot_url': 0})
 
-        # print(before_hierachy)
-        # print(after_hierachy)
-
         # 시나리오 실행(before_hierachy 와 action을 GPT에게 입력 후 결과를 받아온다.
         view_id, run_func = infer_viewid(before_hierachy, action)
         print(view_id)
         # 추론한 viewId를 바탕으로 adb 명령을 수행
 
-
+# adb 함수 학습시켜서 응답으로 함수도 내보내게 해야하고, 응답 스키마도 설정해야함.
 def infer_viewid(hierarchy, action):
     '''
     action을 입력받아서 view id를 추론하는 함수
@@ -238,25 +235,25 @@ def infer_viewid(hierarchy, action):
     # 계층정보를 문자열로 변환
     hierarchy_info = json.dumps(hierarchy, indent=4, ensure_ascii=False)  # 보기 좋게 포맷팅
     print(hierarchy_info)
-    pre_prompt = "한국어로 친절하게 대답해줘. 그리고 알맞는 계층의 json key 값만 출력해줘\n\n"
-    prompt = f"{pre_prompt}UI 계층은 다음과 같아:\n{hierarchy_info}\n다음 액션을 수행해줘: {action}"
+    # pre_prompt = "한국어로 대답해줘. 대답 형태는 key = {key_id}, function = {function} 형태로 해줘\n 알맞는 key_id가 없으면 null을 반환해주고, 알맞는 function이 없으면 null을 반환해줘 \n"
+    # prompt = f"{pre_prompt}UI 계층은 다음과 같아:\n{hierarchy_info}\n다음 액션을 수행해줘: {action}"
 
     # action을 GPT에 입력
     openai.api_key
-    response = openai.ChatCompletion.create(
-        model="gpt-4-turbo",
-        messages=[
-            {"role": "system", "content": "You are a helpful code assistant."},
-            {
-                "role": "user",
-                "content": prompt}
-        ],
-        max_tokens=3000,
+    response = openai.Completion.create( # 해당 요청과 model은 legacy 모델이므로 현재 최신 방법과 좀 다르다.
+        # model="ft:gpt-3.5-turbo-0125:personal::9IIlNja4",
+        model="ft:davinci-002:personal::9IFS2pQj",
+        # messages=[
+        #     # {"role": "system", "content": "You are a helpful assistant that translates English to Korean."},
+        #     {"role": "user", "content": action}
+        # ],
+        prompt = "Msg: UI 계층은 다음과 같아 " + hierarchy_info + "action: " + action,
+        max_tokens=10,
         temperature=0.5
     )
 
     print(response)
-    answer = response.choices[0].message.content.strip()
+    answer = response.choices[0].text
 
     # 추론된 view id를 반환
     return answer, None
