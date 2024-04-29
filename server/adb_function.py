@@ -6,9 +6,15 @@ def find_by_id_touch(key):
     print("id_touch")
     vc.findViewById('id/no_id/'+key).touch()
 
-def find_by_text_touch(text):
+def find_by_text_touch(key):
     print("text_touch")
-    vc.findViewWithText(text).touch()
+    vc.findViewWithText(key).touch()
+
+def find_by_id_touch_type(key, text):
+    vc.findViewById('id/no_id/' + key).type(text)
+
+def find_by_text_touch_type(key, text):
+    vc.findViewWithText(key).type(text)
 
 def back():
     print("back")
