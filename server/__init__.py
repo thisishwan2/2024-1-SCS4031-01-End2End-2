@@ -4,7 +4,6 @@ from pymongo import MongoClient
 app = Flask(__name__)
 
 from server import routes
-from server import fine_tuning
 
 # db 연동
 client = MongoClient(host='localhost', port=27017)
