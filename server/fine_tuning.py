@@ -9,6 +9,7 @@ openai.api_key = tree.find('string[@name="OPEN_API_KEY"]').text
 
 client = OpenAI(api_key=openai.api_key)
 
+# 함수별로 응답을 일치 시켜준다.
 init_train_data = '''
 user의 input은 ui와 action이 있어. 따라서 입력 예시를 보여주면 아래와 같아
 
@@ -30,26 +31,13 @@ ui:
   "14": "androidx.recyclerview.widget.RecyclerView com.sampleapp:id/contentRecyclerview",
   "15": "android.view.ViewGroup com.sampleapp:id/topRatingLayout",
   "16": "android.widget.TextView com.sampleapp:id/recentRatingTextView 4.9",
-  "17": "android.widget.TextView com.sampleapp:id/rating5TitleTextView 5점",
-  "18": "android.widget.ProgressBar com.sampleapp:id/rating5ProgressBar",
-  "19": "android.widget.TextView com.sampleapp:id/rating5ReviewCountTextView 612",
-  "20": "android.widget.TextView com.sampleapp:id/rating4TitleTextView 4점",
-  "21": "android.widget.ProgressBar com.sampleapp:id/rating4ProgressBar",
-  "22": "android.widget.TextView com.sampleapp:id/rating4ReviewCountTextView 12",
-  "23": "android.widget.TextView com.sampleapp:id/rating3TitleTextView 3점",
-  "24": "android.widget.ProgressBar com.sampleapp:id/rating3ProgressBar",
-  "25": "android.widget.TextView com.sampleapp:id/rating3ReviewCountTextView 6",
-  "26": "android.widget.TextView com.sampleapp:id/rating2TitleTextView 2점",
-  "27": "android.widget.ProgressBar com.sampleapp:id/rating2ProgressBar",
-  "28": "android.widget.TextView com.sampleapp:id/rating2ReviewCountTextView 1",
-  "29": "android.widget.TextView com.sampleapp:id/rating1TitleTextView 1점",
-  "30": "android.widget.ProgressBar com.sampleapp:id/rating1ProgressBar",
+  "17": "android.widget.TextView com.sampleapp:id/rating5TitleTextView 3점",
 },
 action: 3점을 찾아서 클릭해줘
 
 위가 입력 예시야. 넌 이런 입력이 들어왔을때, 아래와 같은 응답을 해주면 돼.
 
-"key = 1, action = find_by_id_touch" 와 같은 형태로 답변하거나,  "key = 1, text= 가나다,  action = find_by_id_touch" 와 같은 형태로 답변하거나, "key = None, action = swipe_up_to_down" 과 같이 답변할 수도 있어
+"key=1,action=find_by_id_touch" 와 같은 형태로 답변하거나,  "key=1,text=가나다,action=find_by_id_touch" 와 같은 형태로 답변하거나, "key=None,action=swipe_up_to_down" 과 같이 답변할 수도 있어
 
 key는 해당하는 id를 반환하고, text는 입력할 text를 반환하면 돼, 그리고 function은 알맞은 함수 이름을 반환하면 되는데 그 function을 선택하는 방법은 아래와 같아
 
@@ -57,6 +45,7 @@ key는 해당하는 id를 반환하고, text는 입력할 text를 반환하면 �
 
 자 이제 이런 정보들을 학습하고, 다음 질문부터 알맞는 답변을 해주면 돼
 '''
+# "action": "Google을 찾아서 '날씨'를 검색해줘",
 
 # gpt 초기 학습
 def init_train_llm(init_train_data):
@@ -70,8 +59,8 @@ def init_train_llm(init_train_data):
         temperature=0.5
     )
     answer = response.choices[0].message.content
-    print(answer)
-init_train_llm(init_train_data)
+    # print(answer)
+# init_train_llm(init_train_data)
 
 
 def fine_tunes():
