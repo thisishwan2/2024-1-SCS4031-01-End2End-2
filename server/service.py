@@ -13,7 +13,10 @@ from ppadb.client import Client as AdbClient
 import xml.etree.ElementTree as elemTree
 import boto3
 import openai
+from openai import OpenAI
+from fine_tuning import init_train_data
 
+from server import adb_function
 from server import app
 
 #Parse XML
@@ -25,8 +28,12 @@ AWS_SECRET_KEY = tree.find('string[@name="AWS_SECRET_KEY"]').text
 BUCKET_NAME = tree.find('string[@name="BUCKET_NAME"]').text
 location = 'ap-northeast-2'
 
+client = OpenAI(api_key=openai.api_key)
+
 # 시리얼 번호
 serial_no = None
+vc = None
+device = None
 
 # S3 연결
 def s3_connection():
@@ -102,6 +109,7 @@ def take_screenshot():
 # 디바이스 연결 확인
 def adb_connect():
     global serial_no
+    global device
 
     if request.method == 'GET':
         start_adb_server()
@@ -131,6 +139,8 @@ def start_adb_server():
 # 현재 계층 정보 추출 및 DB에 저장
 def current_view():
     global serial_no
+    global vc
+
     hierarchy = app.config['HIERARCHY']
 
     if request.method == 'POST':
@@ -200,9 +210,6 @@ def save_action():
                         'task_num': action_num
         })
 
-# 액션 수정
-
-
 # 테스트 시나리오 실행
 def run_scenario():
     if request.method == 'POST':
@@ -220,9 +227,25 @@ def run_scenario():
                                             {'_id': 0, 'scenario_num': 0, 'task_num': 0, 'screenshot_url': 0})
 
         # 시나리오 실행(before_hierachy 와 action을 GPT에게 입력 후 결과를 받아온다.
-        view_id, run_func = infer_viewid(before_hierachy, action)
-        print(view_id)
-        # 추론한 viewId를 바탕으로 adb 명령을 수행
+        result = infer_viewid(before_hierachy, action) # result의 형태는 key, function_name 혹은 key, text, function_name이다.
+
+        adb_function_instance = getattr(adb_function, adb_function)()
+
+        # text가 없는 경우
+        # 수정: 문자열을 이용해서 다른 클래스의 함수를 실행시키는 방법
+        if len(result) == 2:
+            key, function_name = result
+
+            if function_name == 'back' or function_name == 'home' or 'swipe' in function_name:
+                globals()[function_name]()
+            else:
+                globals()[function_name](key) # 문자열로 함수 실행
+
+        # text가 있는 경우
+        elif len(result) == 3:
+            key, text, function_name = result
+            globals()[function_name](key, text)
+        print("success")
 
 # adb 함수 학습시켜서 응답으로 함수도 내보내게 해야하고, 응답 스키마도 설정해야함.
 def infer_viewid(hierarchy, action):
@@ -235,30 +258,37 @@ def infer_viewid(hierarchy, action):
     # 계층정보를 문자열로 변환
     hierarchy_info = json.dumps(hierarchy, indent=4, ensure_ascii=False)  # 보기 좋게 포맷팅
     print(hierarchy_info)
-    # pre_prompt = "한국어로 대답해줘. 대답 형태는 key = {key_id}, function = {function} 형태로 해줘\n 알맞는 key_id가 없으면 null을 반환해주고, 알맞는 function이 없으면 null을 반환해줘 \n"
-    # prompt = f"{pre_prompt}UI 계층은 다음과 같아:\n{hierarchy_info}\n다음 액션을 수행해줘: {action}"
 
-    # action을 GPT에 입력
-    openai.api_key
-    response = openai.Completion.create( # 해당 요청과 model은 legacy 모델이므로 현재 최신 방법과 좀 다르다.
-        # model="ft:gpt-3.5-turbo-0125:personal::9IIlNja4",
-        model="ft:davinci-002:personal::9IFS2pQj",
-        # messages=[
-        #     # {"role": "system", "content": "You are a helpful assistant that translates English to Korean."},
-        #     {"role": "user", "content": action}
-        # ],
-        prompt = "Msg: UI 계층은 다음과 같아 " + hierarchy_info + "action: " + action,
-        max_tokens=10,
+    msg = "ui: \n" + hierarchy_info + "\naction: " + action
+
+    # action을 GPT에 입력(gpt api는 이전 대회를 기억하지 못함)
+    response = client.chat.completions.create( # 해당 요청과 model은 legacy 모델이므로 현재 최신 방법과 좀 다르다.
+        model="gpt-3.5-turbo",
+        # model="ft:davinci-002:personal::9J3zU2Lo",
+        messages=[
+            {"role": "system", "content": init_train_data},
+            {"role": "user", "content": msg}
+        ],
+        max_tokens=50,
         temperature=0.5
     )
+    # print(response)
+    answer = response.choices[0].message.content
+    print(answer)
 
-    print(response)
-    answer = response.choices[0].text
+    ans_lst = answer.split(",")
 
-    # 추론된 view id를 반환
-    return answer, None
+    # 응답 text가 없는 경우
+    if len(ans_lst)==2:
+        key = ans_lst[0].split("=")[-1]
+        function_name = ans_lst[1].split("=")[-1]
 
-
+        return key, function_name
+    else:
+        key = ans_lst[0].split("=")[-1]
+        text = ans_lst[1].split("=")[-1]
+        function_name = ans_lst[2].split("=")[-1]
+        return key, text, function_name
 
 # DB에 저장되어 있는 전체 시나리오 및 테스트 불러오기
 def load_scenario():
