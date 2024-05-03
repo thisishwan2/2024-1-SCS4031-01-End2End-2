@@ -43,30 +43,26 @@ add_task_model = e2e.model('AddTask', {
 
 # 계층 정보 추출 요청 모델
 extracted_hierarchy_model = e2e.model('ExtractedHierarchy', {
-    'object_id': fields.String(description='Object ID', required=True),
     'index': fields.String(description='순서', required=True),
 })
 
 # 계층 정보 추출 응답 모델
 extracted_hierarchy_response_model = api.model('ExtractedHierarchyResponse', {
-    'object_id': fields.String(description='object Id', required=True),
     'screenshot_url': fields.String(description='스크린샷 url', required=True),
 })
 
-
-
-
-test_action = e2e.model('action', {
+# 액션 추가 요청 모델
+save_action = e2e.model('SaveAction', {
     'action': fields. String(description = '수행하고자 하는 action을 입력하세요', required = True, example = '1번 id를 찾아서 클릭해줘'),
-    'scenario_num': fields. String(description = '시나리오 번호', required = True, example = '1'),
-    'action_num': fields. String(description = '액션 번호', required = True, example = '1')
+    'index': fields.String(description = '순서', required = True, example = '1')
 })
 
-action_response_model = api.model('ActionResponse', {
-    'object_id': fields.String(description='action Id', required=True),
-    'scenario_num': fields.String(description='시나리오 번호', required=True),
-    'action_num': fields.String(description='액션 번호', required=True),
-})
+# 액션 추가 응답 모델
+# save_action_response_model = api.model('SaveActionResponse', {
+#     'object_id': fields.String(description='action Id', required=True),
+#     'scenario_num': fields.String(description='시나리오 번호', required=True),
+#     'action_num': fields.String(description='액션 번호', required=True),
+# })
 
 
 # Action의 상세 정보를 나타내는 모델
@@ -134,7 +130,7 @@ class scenario(Resource):
         :param scenario_id: 시나리오 아이디
         :return: 시나리오 상세 정보
         '''
-        return service.scenario(scenario_id)
+        return service.scenario(str(scenario_id))
 
 
 # 시나리오 작업 추가
@@ -153,26 +149,24 @@ class add_task(Resource):
 class extracted_hierarchy(Resource):
     @e2e.expect(extracted_hierarchy_model)
     @api.response(200, 'Success', extracted_hierarchy_response_model)
-    def post(self):
+    def post(self, scenario_id):
         '''
         현재 계층 정보 추출 및 DB에 저장
         :return: 현재 계층 정보
         '''
-        return service.current_view()
+        return service.extracted_hierarchy(scenario_id)
 
 # 액션 저장
-@e2e.route('/save-action')
-@api.doc(responses={200: 'Success', 400: 'Error'},
-         description='이 API 엔드포인트는 사용자의 액션을 받아서 데이터베이스에 저장합니다.')
+@e2e.route('/scenarios/<string:scenario_id>/action')
 class save_action(Resource):
-    @e2e.expect(test_action)
-    @api.response(200, 'Success', action_response_model)  # 응답 모델 적용
-    def post(self):
+    @e2e.expect(save_action)
+    # @api.response(200, 'Success', save_action_response_model)  # 응답 모델 적용
+    def post(self, scenario_id):
         '''
         액션 저장
         :return: 액션 아이디
         '''
-        return service.save_action()
+        return service.save_action(scenario_id)
 
 # 시나리오 실행(계층정보 - 액션 - 계층정보)
 @e2e.route('/run-scenario')
