@@ -60,6 +60,8 @@ def scenario(scenario_id):
         try:
             # MongoDB에서 시나리오 문서를 조회
             scenario_doc = scenario_list.find_one({'_id': ObjectId(scenario_id)})
+
+        # 잘못된 scenario_id를 전달받은 경우 예외처리가 안됨
         except errors.InvalidId:
             return jsonify({'error': 'Invalid scenario ID format'}), 400
 
@@ -69,7 +71,7 @@ def scenario(scenario_id):
         else:
             return jsonify({'error': 'Scenario not found'}), 404
 
-# 시나리오 생성 (껍데기 3개)
+# 시나리오 생성
 def create_scenario():
     if request.method == 'POST':
         scenario_list = app.config['scenario']
@@ -78,7 +80,7 @@ def create_scenario():
 
         scenario_document = {'scenario_name': scenario_name,
                              'run_status': 'ready',
-                             'scenario': [{'hierachy': ""},{'action': ""},{'hierachy': ""}]
+                             'scenario': [{'hierachy': []},{'action': ""},{'hierachy': []}]
                              }
 
         inserted_data = scenario_list.insert_one(scenario_document)
@@ -88,19 +90,19 @@ def create_scenario():
 def add_task():
     if request.method == 'POST':
         scenario_list = app.config['scenario']
-        scenario_id = request.json['object_id']
+        object_id = request.json['object_id']
 
         try:
             # MongoDB에서 시나리오 문서를 조회
-            scenario_doc = scenario_list.find_one({'_id': ObjectId(scenario_id)})
+            scenario_doc = scenario_list.find_one({'_id': ObjectId(object_id)})
         except errors.InvalidId:
             return jsonify({'error': 'Invalid scenario ID format'}), 400
 
         if scenario_doc:
             # 시나리오 문서에 작업 추가
-            new_tasks = [{'action': ''}, {'hierachy': ''}]
+            new_tasks = [{'action': ''}, {'hierachy': []}]
             updated_scenario = scenario_list.find_one_and_update(
-                {'_id': ObjectId(scenario_id)},
+                {'_id': ObjectId(object_id)},
                 {'$push': {'scenario': {'$each': new_tasks}}},
                 return_document=ReturnDocument.AFTER
             )
@@ -113,17 +115,16 @@ def add_task():
             return jsonify({'error': 'Scenario not found'}), 404
 
 
-
 # 현재 계층 정보 추출 및 DB에 저장
-def current_view():
+def extracted_hierarchy(scenario_id):
     global serial_no
 
-    hierarchy = app.config['HIERARCHY']
+    scenario_list = app.config['scenario']
 
     if request.method == 'POST':
 
-        scenario_num = request.json['scenario_num']
-        task_num = request.json['task_num']
+        object_id = scenario_id
+        index = int(request.json['index'])
 
         vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
         # traverse_to_list 메서드를 사용하여 디바이스의 UI 계층 구조를 리스트로 반환(ViewClient로 부터 재 정의함)
@@ -136,10 +137,7 @@ def current_view():
         # 로컬에서 이미지 삭제
         os.remove(screenshot_dir)
 
-        insert_data = {"scenario_num": scenario_num,
-                       "task_num":task_num,
-                       "screenshot_url": screenshot_url}
-
+        ui_data = {}
         # mongodb에 저장
         for ui in ui_list:
             pattern_line_separator = '\n'
@@ -152,18 +150,18 @@ def current_view():
             component = match.group(1).strip()  # 앞뒤 공백 제거
             unique_id = match.group(2)
 
-            insert_data[unique_id] = component
+            ui_data[unique_id] = component
+        print(ui_data)
 
-        # MongoDB 컬렉션에 딕셔너리 리스트를 저장합니다.
-        inserted_data = hierarchy.insert_one(insert_data)
-        object_id = str(inserted_data.inserted_id)
+        # MongoDB에서 특정 시나리오의 hierarchy 배열을 업데이트
+        result = scenario_list.update_one(
+            {'_id': ObjectId(object_id), f'scenario.{index}.hierachy': {'$exists': True}},
+            {'$push': {f'scenario.{index}.hierachy': {
+                '$each': [ui_data, {'screenshot_url': screenshot_url}, {'status': 'ready'}]}}}
+        )
 
-        # 응답으로 이미지 url과 db object id를 반환
         return jsonify({
-            'object_id': object_id,
             'screenshot_url': screenshot_url,
-            'scenario_num': scenario_num,
-            'task_num': task_num
         })
 
 # S3 연결

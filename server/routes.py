@@ -43,13 +43,11 @@ add_task_model = e2e.model('AddTask', {
 
 # 계층 정보 추출 요청 모델
 extracted_hierarchy_model = e2e.model('ExtractedHierarchy', {
-    'object_id': fields.String(description='Object ID', required=True),
     'index': fields.String(description='순서', required=True),
 })
 
 # 계층 정보 추출 응답 모델
 extracted_hierarchy_response_model = api.model('ExtractedHierarchyResponse', {
-    'object_id': fields.String(description='object Id', required=True),
     'screenshot_url': fields.String(description='스크린샷 url', required=True),
 })
 
@@ -134,7 +132,7 @@ class scenario(Resource):
         :param scenario_id: 시나리오 아이디
         :return: 시나리오 상세 정보
         '''
-        return service.scenario(scenario_id)
+        return service.scenario(str(scenario_id))
 
 
 # 시나리오 작업 추가
@@ -153,12 +151,12 @@ class add_task(Resource):
 class extracted_hierarchy(Resource):
     @e2e.expect(extracted_hierarchy_model)
     @api.response(200, 'Success', extracted_hierarchy_response_model)
-    def post(self):
+    def post(self, scenario_id):
         '''
         현재 계층 정보 추출 및 DB에 저장
         :return: 현재 계층 정보
         '''
-        return service.current_view()
+        return service.extracted_hierarchy(scenario_id)
 
 # 액션 저장
 @e2e.route('/save-action')
