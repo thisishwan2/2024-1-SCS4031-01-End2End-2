@@ -1,3 +1,4 @@
 /server/.venv/
 /server/keys.xml
 /server/example.jsonl
+__pycache__/

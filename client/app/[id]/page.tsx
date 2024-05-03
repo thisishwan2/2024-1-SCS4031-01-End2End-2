@@ -2,7 +2,7 @@
 import { Box, Button, CssBaseline, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Toolbar, Typography, styled, useTheme } from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import InboxIcon from '@mui/icons-material/MoveToInbox';
@@ -78,16 +78,6 @@ export default function Home() {
     setOpen(false);
   };
 
-  useEffect(() => {
-    const fetchList = async () => {
-      const data = await fetch('http://127.0.0.1:5000/E2E/load-scenario');
-      return data.json();
-    }
-    fetchList().then(data => {
-      console.log(data);
-    })
-  }, []);
-
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
@@ -144,44 +134,56 @@ export default function Home() {
           ))}
         </List>
         <Divider />
+        {/* <List>
+          {['All mail', 'Trash', 'Spam'].map((text, index) => (
+            <ListItem key={text} disablePadding>
+              <ListItemButton>
+                <ListItemIcon>
+                  {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
+                </ListItemIcon>
+                <ListItemText primary={text} />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List> */}
       </Drawer>
       <Main open={open}>
         <DrawerHeader />
          {
           scenario.map(item => {
             return (
-              <div key={item.id}>
-                <Box display="flex" gap="20px" alignItems="center" marginBottom="15px">
-                  <Typography paragraph margin="0">
-                    {item.title}
-                  </Typography>
-                  <Button>
-                    시나리오 실행
-                  </Button>
-                </Box>
-                <Box display="flex" gap="40px" alignItems="center" marginBottom="40px">
-                <Box bgcolor="lightgray" width="200px" height="300px">old</Box>
-                <Box bgcolor="lightgray" width="200px" height="300px">action</Box>
-                <Box bgcolor="lightgray" width="200px" height="300px">new</Box> 
-                <Button variant="contained" onClick={() => {
-                  const newScenario = scenario.map(sc => {
-                    if(sc.id === item.id) {
-                      return {
-                        ...sc,
-                        list: [...sc.list, {
-                          id: sc.list.length + 1,
-                          old: '',
-                          action: '',
-                          new: ''
-                        }]
-                      }
-                    }
-                    return sc
-                  })
-                  setScenario(newScenario as any)
-                }}>추가</Button>   
+              <>
+              <Box display="flex" gap="20px" alignItems="center" marginBottom="15px">
+                <Typography paragraph margin="0">
+                  {item.title}
+                </Typography>
+                <Button>
+                  시나리오 실행
+                </Button>
               </Box>
-              </div>
+              <Box display="flex" gap="40px" alignItems="center" marginBottom="40px">
+              <Box bgcolor="lightgray" width="200px" height="300px">old</Box>
+              <Box bgcolor="lightgray" width="200px" height="300px">action</Box>
+              <Box bgcolor="lightgray" width="200px" height="300px">new</Box> 
+              <Button variant="contained" onClick={() => {
+                const newScenario = scenario.map(sc => {
+                  if(sc.id === item.id) {
+                    return {
+                      ...sc,
+                      list: [...sc.list, {
+                        id: sc.list.length + 1,
+                        old: '',
+                        action: '',
+                        new: ''
+                      }]
+                    }
+                  }
+                  return sc
+                })
+                setScenario(newScenario as any)
+              }}>추가</Button>   
+            </Box>
+              </>
             )
           
           })
