@@ -1,5 +1,5 @@
 'use client'
-import { Box, Button, CssBaseline, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Toolbar, Typography, styled, useTheme } from "@mui/material";
+import { Box, Button, CssBaseline, Dialog, DialogActions, DialogTitle, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Modal, TextField, Toolbar, Typography, styled, useTheme } from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import { useEffect, useState } from "react";
@@ -7,6 +7,28 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import InboxIcon from '@mui/icons-material/MoveToInbox';
 import MailIcon from '@mui/icons-material/Mail';
+
+
+import * as React from 'react';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
+import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+const queryClient = new QueryClient();
+function createData(
+  name: string,
+  calories: number,
+  fat: number,
+  carbs: number,
+  protein: number,
+) {
+  return { name, calories, fat, carbs, protein };
+}
 
 const drawerWidth = 240;
 
@@ -60,15 +82,18 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 }));
 
 export default function Home() {
+  const router = useRouter()
   const theme = useTheme();
   const [open, setOpen] = useState(false);
-  const [scenario, setScenario] = useState([
-    {
-      id: 1,
-      title: '시나리오 1',
-      list: []
-    }
-  ]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const {data: scenarioList } = useQuery<{id:string, name:string, run_status:string}[]>({queryKey: ['scenarios'], queryFn: async () => {
+    const data = await fetch('http://127.0.0.1:5000/e2e/scenarios');
+    return data.json();
+  }})
+
+  const handleScenarioAdd = () => {
+    setIsModalOpen(true);
+  }
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -78,18 +103,13 @@ export default function Home() {
     setOpen(false);
   };
 
-  useEffect(() => {
-    const fetchList = async () => {
-      const data = await fetch('http://127.0.0.1:5000/E2E/load-scenario');
-      return data.json();
-    }
-    fetchList().then(data => {
-      console.log(data);
-    })
-  }, []);
+
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <QueryClientProvider client={queryClient}>
+
+    
+    <Box sx={{ display: 'flex', height:"100%" }}>
       <CssBaseline />
       <AppBar position="fixed" open={open}>
         <Toolbar>
@@ -109,7 +129,6 @@ export default function Home() {
           </Typography>
 
           
-          <Button style={{marginLeft: "1000px"}} color="warning" variant='contained'>현재 계층정보 확인</Button>
         </Toolbar>
       </AppBar>
       <Drawer
@@ -147,54 +166,115 @@ export default function Home() {
       </Drawer>
       <Main open={open}>
         <DrawerHeader />
-         {
-          scenario.map(item => {
-            return (
-              <div key={item.id}>
-                <Box display="flex" gap="20px" alignItems="center" marginBottom="15px">
-                  <Typography paragraph margin="0">
-                    {item.title}
-                  </Typography>
-                  <Button>
-                    시나리오 실행
-                  </Button>
+        <Box display="flex" justifyContent="flex-end" padding="20px"> 
+          <Button color="primary" variant='contained' onClick={handleScenarioAdd}>시나리오 추가</Button>
+        </Box>
+        <TableContainer component={Paper}>
+      <Table sx={{ minWidth: 650 }} aria-label="simple table">
+        <TableHead>
+          <TableRow>
+            <TableCell align="center">시나리오 이름</TableCell>
+            <TableCell align="center">상태</TableCell>
+            <TableCell align="center">관리</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {(scenarioList?.length? scenarioList: [
+            {id: "1", name: "로그인", run_status: "failed"},
+            {id: "2", name: "회원가입", run_status: "success"},
+            {id: "3", name: "탈퇴", run_status: "loading"},
+            {id: "4", name: "구매", run_status: "ready"},
+          ])?.map((scenario) => (
+            <TableRow
+              key={scenario.id}
+              sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+            >
+              <TableCell align="center" component="th" scope="row">
+                {scenario.name}
+              </TableCell>
+              <TableCell align="center">{scenario.run_status}</TableCell>
+              <TableCell align="center" >
+                <Box display="flex" gap="20px" justifyContent="center">
+                  <Button color="primary" variant="contained" onClick={() => {
+                    router.push(`/${scenario.id}`)
+                  }}>수정</Button>
+                  <Button color="error" variant="contained">삭제</Button>
                 </Box>
-                <Box display="flex" gap="40px" alignItems="center" marginBottom="40px">
-                <Box bgcolor="lightgray" width="200px" height="300px">old</Box>
-                <Box bgcolor="lightgray" width="200px" height="300px">action</Box>
-                <Box bgcolor="lightgray" width="200px" height="300px">new</Box> 
-                <Button variant="contained" onClick={() => {
-                  const newScenario = scenario.map(sc => {
-                    if(sc.id === item.id) {
-                      return {
-                        ...sc,
-                        list: [...sc.list, {
-                          id: sc.list.length + 1,
-                          old: '',
-                          action: '',
-                          new: ''
-                        }]
-                      }
-                    }
-                    return sc
-                  })
-                  setScenario(newScenario as any)
-                }}>추가</Button>   
-              </Box>
-              </div>
-            )
-          
-          })
-         }
-        <Button  variant="contained" onClick={() => {
-          setScenario([...scenario, {
-            id: scenario.length + 1,
-            title: `시나리오 ${scenario.length + 1}`,
-            list: []
-          }])
-        }}>시나리오 추가</Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
     
       </Main>
     </Box>
+    <AddDialog open={isModalOpen} onClose={() => {setIsModalOpen(false)}}/>
+    </QueryClientProvider>
   );
 }
+interface DialogProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+const AddDialog:React.FC<DialogProps> = ({open, onClose}) => {
+  const queryClient= useQueryClient();
+
+  const { mutate } = useMutation({"mutationFn": async (name: string) => {
+    await fetch("http://127.0.0.1:5000/e2e/scenarios",{method: "POST", body: JSON.stringify({name})})
+  }});
+  const [name, setName] = useState("");
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value);
+  }
+  const handleAdd = () => {
+    mutate(name,{
+      onSuccess:() => {
+        onClose();
+        queryClient.invalidateQueries({queryKey: ['scenarios']})
+      }
+    })
+  }
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="xl" sx={{padding:"20px"}} >
+      <DialogTitle>시나리오 추가</DialogTitle>
+      <Box padding="20px" width="400px">
+        <TextField label="시나리오 이름" fullWidth onChange={handleChange} value={name}/>
+      </Box>
+      <DialogActions>
+        <Button disabled={!name} variant="contained" color="primary" onClick={handleAdd}>추가</Button>
+        <Button variant="contained" color="error" onClick={onClose}>취소</Button>
+      </DialogActions>
+    </Dialog>
+  )
+
+}
+
+
+// [
+//   {id: "1", name: "로그인", run_status: "failed"},
+//   {id: "2", name: "회원가입", run_status: "success"},
+//   {id: "3", name: "탈퇴", run_status: "loading"},
+//   {id: "4", name: "구매", run_status: "ready"},
+// ]
+// [
+//   {
+//     계층정보: "",
+//     screenshot: "",
+//     status:""
+//   },
+//   {
+//     description:"",
+//     status:"",
+//   },
+//   {
+//     계층정보: "",
+//     screenshot: "",
+//     status:""
+//   },
+//   {
+//     description:"",
+//     status:"",
+//   },
+// ]
