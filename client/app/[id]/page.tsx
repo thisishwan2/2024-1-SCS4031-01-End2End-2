@@ -71,13 +71,13 @@ export default function Home() {
       _id: string;
       run_status: string;
       scenario_name: string;
-      scenario: {hierachy?: string; action?:string}[]
+      scenario: {hierarchy?: string; action?:string}[]
     }>(`http://127.0.0.1:5000/e2e/scenarios/${id}`);
     return response.data;
   }})
 
-  const {mutate: postHierachy} = useMutation({mutationFn: async ({index}: {index: number}) => {
-    return axios.post(`http://127.0.0.1:5000/e2e/scenarios/${id}/hierachy`, {index: String(index)});
+  const {mutate: posthierarchy} = useMutation({mutationFn: async ({index}: {index: number}) => {
+    return axios.post(`http://127.0.0.1:5000/e2e/scenarios/${id}/hierarchy`, {index: String(index)});
   }});
   const {mutate: postAction} = useMutation({mutationFn: async ({index,action}: {index: number, action:string}) => {
     return axios.post(`http://127.0.0.1:5000/e2e/scenarios/${id}/action`, {index: String(index), action});
@@ -100,8 +100,8 @@ export default function Home() {
     setOpen(false);
   };
 
-  const handleHierachyButtonClick = (index: number) => () => {
-    postHierachy({index}, {onSuccess:()=> {
+  const handlehierarchyButtonClick = (index: number) => () => {
+    posthierarchy({index}, {onSuccess:()=> {
       queryClient.invalidateQueries({queryKey: ['scenario', 'detail', id]})
     }});
   }
@@ -184,7 +184,7 @@ export default function Home() {
                 </Button>
               </Box>
               <Box display="flex" gap="40px" alignItems="center" marginBottom="40px">
-              {scenarioDetail?.scenario?.map((item,index) => item.hierachy !== undefined  ? (<Box key={item.hierachy|| index} bgcolor="lightgray" width="200px" height="300px"><Button variant="contained" onClick={handleHierachyButtonClick(index)}>화면정보등록</Button></Box>): (<Box key={item.action||index} bgcolor="lightgray" width="200px" height="300px"><TextField label="액션정보" value={actionText} onChange={(e)=> {
+              {scenarioDetail?.scenario?.map((item,index) => item.hierarchy !== undefined  ? (<Box key={item.hierarchy|| index} bgcolor="lightgray" width="200px" height="300px"><Button variant="contained" onClick={handlehierarchyButtonClick(index)}>화면정보등록</Button></Box>): (<Box key={item.action||index} bgcolor="lightgray" width="200px" height="300px"><TextField label="액션정보" value={actionText} onChange={(e)=> {
                 setActionText(e.target.value);
               }} /><Button variant="contained" onClick={handleActionButtonClick(index)}>등록</Button></Box>))}
               <Button variant="contained" onClick={() => {
