@@ -164,6 +164,26 @@ def extracted_hierarchy(scenario_id):
             'screenshot_url': screenshot_url,
         })
 
+# action 저장
+def save_action(scenario_id):
+    scenario_list = app.config['scenario']
+
+    if request.method == 'POST':
+        object_id = scenario_id
+        index = int(request.json['index'])
+        action = request.json['action']
+
+        # MongoDB에서 특정 시나리오의 특정 인덱스에 action 데이터를 업데이트
+        result = scenario_list.update_one(
+            {'_id': ObjectId(object_id), f'scenario.{index}': {'$exists': True}},
+            {'$set': {f'scenario.{index}.action': action}}
+        )
+
+    return jsonify({"message": "success"})
+
+
+
+
 # S3 연결
 def s3_connection():
     '''
@@ -269,27 +289,6 @@ def start_adb_server():
     except subprocess.CalledProcessError as e:
         print("Error:", e)
 
-
-# 액션 저장
-def save_action():
-    action_collection = app.config['ACTION_COLLECTION']
-
-    if request.method == 'POST':
-        scenario_num = request.json['scenario_num']
-        action_num = request.json['action_num']
-        action = request.json['action']
-
-        action_document = {'scenario_num': scenario_num,
-                           'action_num': action_num,
-                           'action': action
-                           }
-
-        inserted_data = action_collection.insert_one(action_document)
-        object_id = str(inserted_data.inserted_id)
-        return jsonify({'object_id': object_id,
-                        'scenario_num': scenario_num,
-                        'task_num': action_num
-        })
 
 def execute_function(function_name, *args, **kwargs):
     # file1 모듈의 함수를 동적으로 호출하면서, 인자와 키워드 인자 전달
