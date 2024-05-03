@@ -4,8 +4,11 @@ import re
 import subprocess
 import time
 from pathlib import Path
+
+from bson import errors
+from bson.json_util import dumps
 from bson.objectid import ObjectId
-from pymongo import ASCENDING
+from pymongo import ASCENDING, ReturnDocument
 
 from com.dtmilano.android.viewclient import ViewClient, ListView, View, UiScrollable
 from flask import Flask, request, jsonify
@@ -33,6 +36,135 @@ client = OpenAI(api_key=openai.api_key)
 # 시리얼 번호
 serial_no = None
 device = None
+
+# 시나리오 리스트 조회
+def scenarios():
+    if request.method == 'GET':
+        scenario_list = app.config['scenario']
+        cursor = scenario_list.find({}, {'scenario_name': 1, 'run_status': 1})
+
+        # 쿼리 결과를 JSON 직렬화 가능한 형태로 변환
+        scenarios = []
+        for doc in cursor:
+            # ObjectId를 문자열로 변환
+            doc['_id'] = str(doc['_id']) if '_id' in doc else None
+            scenarios.append(doc)
+
+        return jsonify(list(scenarios))
+
+# 시나리오 상세 보기
+def scenario(scenario_id):
+    if request.method == 'GET':
+        scenario_list = app.config['scenario']
+
+        try:
+            # MongoDB에서 시나리오 문서를 조회
+            scenario_doc = scenario_list.find_one({'_id': ObjectId(scenario_id)})
+        except errors.InvalidId:
+            return jsonify({'error': 'Invalid scenario ID format'}), 400
+
+        if scenario_doc:
+            scenario_doc['_id'] = str(scenario_doc['_id'])
+            return jsonify(scenario_doc)
+        else:
+            return jsonify({'error': 'Scenario not found'}), 404
+
+# 시나리오 생성 (껍데기 3개)
+def create_scenario():
+    if request.method == 'POST':
+        scenario_list = app.config['scenario']
+
+        scenario_name = request.json['scenario_name']
+
+        scenario_document = {'scenario_name': scenario_name,
+                             'run_status': 'ready',
+                             'scenario': [{'hierachy': ""},{'action': ""},{'hierachy': ""}]
+                             }
+
+        inserted_data = scenario_list.insert_one(scenario_document)
+        return jsonify({'message': 'Success'})
+
+# 시나리오 작업 추가
+def add_task():
+    if request.method == 'POST':
+        scenario_list = app.config['scenario']
+        scenario_id = request.json['object_id']
+
+        try:
+            # MongoDB에서 시나리오 문서를 조회
+            scenario_doc = scenario_list.find_one({'_id': ObjectId(scenario_id)})
+        except errors.InvalidId:
+            return jsonify({'error': 'Invalid scenario ID format'}), 400
+
+        if scenario_doc:
+            # 시나리오 문서에 작업 추가
+            new_tasks = [{'action': ''}, {'hierachy': ''}]
+            updated_scenario = scenario_list.find_one_and_update(
+                {'_id': ObjectId(scenario_id)},
+                {'$push': {'scenario': {'$each': new_tasks}}},
+                return_document=ReturnDocument.AFTER
+            )
+
+            if updated_scenario:
+                return jsonify({'message': 'success'})
+            else:
+                return jsonify({'error': 'Update failed'}), 500
+        else:
+            return jsonify({'error': 'Scenario not found'}), 404
+
+
+
+# 현재 계층 정보 추출 및 DB에 저장
+def current_view():
+    global serial_no
+
+    hierarchy = app.config['HIERARCHY']
+
+    if request.method == 'POST':
+
+        scenario_num = request.json['scenario_num']
+        task_num = request.json['task_num']
+
+        vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
+        # traverse_to_list 메서드를 사용하여 디바이스의 UI 계층 구조를 리스트로 반환(ViewClient로 부터 재 정의함)
+        ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)  # vc의 디바이스 UI 트리를 순회하여 리스트로 반환
+
+        # 스크린샷을 찍어서 s3에 저장
+        screenshot_dir = take_screenshot()
+        screenshot_url = s3_put_object(screenshot_dir)
+
+        # 로컬에서 이미지 삭제
+        os.remove(screenshot_dir)
+
+        insert_data = {"scenario_num": scenario_num,
+                       "task_num":task_num,
+                       "screenshot_url": screenshot_url}
+
+        # mongodb에 저장
+        for ui in ui_list:
+            pattern_line_separator = '\n'
+            ui = re.sub(pattern_line_separator, " ", ui)
+
+            # 정규식을 사용하여 문자열을 분리합니다.
+            pattern = r'(.+?) id/no_id/(\d+)'
+            match = re.match(pattern, ui)
+
+            component = match.group(1).strip()  # 앞뒤 공백 제거
+            unique_id = match.group(2)
+
+            insert_data[unique_id] = component
+
+        # MongoDB 컬렉션에 딕셔너리 리스트를 저장합니다.
+        inserted_data = hierarchy.insert_one(insert_data)
+        object_id = str(inserted_data.inserted_id)
+
+        # 응답으로 이미지 url과 db object id를 반환
+        return jsonify({
+            'object_id': object_id,
+            'screenshot_url': screenshot_url,
+            'scenario_num': scenario_num,
+            'task_num': task_num
+        })
 
 # S3 연결
 def s3_connection():
@@ -78,25 +210,7 @@ def s3_put_object(file_dir):
         return False
     return image_url
 
-def scenarios():
-    if request.method == 'GET':
-        scenario_list = app.config['scenario']
-        cursor = scenario_list.find({}, {'scenario_name': 1})
-
-        # 쿼리 결과를 JSON 직렬화 가능한 형태로 변환
-        scenarios = []
-        for doc in cursor:
-            # ObjectId를 문자열로 변환
-            doc['_id'] = str(doc['_id']) if '_id' in doc else None
-            scenarios.append(doc)
-
-        return jsonify(list(scenarios))
-
-
-
-
-
-
+# 전체 실행시
 
 
 # 디바이스의 현재 화면 스크린샷
@@ -157,57 +271,6 @@ def start_adb_server():
     except subprocess.CalledProcessError as e:
         print("Error:", e)
 
-# 현재 계층 정보 추출 및 DB에 저장
-def current_view():
-    global serial_no
-
-    hierarchy = app.config['HIERARCHY']
-
-    if request.method == 'POST':
-
-        scenario_num = request.json['scenario_num']
-        task_num = request.json['task_num']
-
-        vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
-        # traverse_to_list 메서드를 사용하여 디바이스의 UI 계층 구조를 리스트로 반환(ViewClient로 부터 재 정의함)
-        ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)  # vc의 디바이스 UI 트리를 순회하여 리스트로 반환
-
-        # 스크린샷을 찍어서 s3에 저장
-        screenshot_dir = take_screenshot()
-        screenshot_url = s3_put_object(screenshot_dir)
-
-        # 로컬에서 이미지 삭제
-        os.remove(screenshot_dir)
-
-        insert_data = {"scenario_num": scenario_num,
-                       "task_num":task_num,
-                       "screenshot_url": screenshot_url}
-
-        # mongodb에 저장
-        for ui in ui_list:
-            pattern_line_separator = '\n'
-            ui = re.sub(pattern_line_separator, " ", ui)
-
-            # 정규식을 사용하여 문자열을 분리합니다.
-            pattern = r'(.+?) id/no_id/(\d+)'
-            match = re.match(pattern, ui)
-
-            component = match.group(1).strip()  # 앞뒤 공백 제거
-            unique_id = match.group(2)
-
-            insert_data[unique_id] = component
-
-        # MongoDB 컬렉션에 딕셔너리 리스트를 저장합니다.
-        inserted_data = hierarchy.insert_one(insert_data)
-        object_id = str(inserted_data.inserted_id)
-
-        # 응답으로 이미지 url과 db object id를 반환
-        return jsonify({
-            'object_id': object_id,
-            'screenshot_url': screenshot_url,
-            'scenario_num': scenario_num,
-            'task_num': task_num
-        })
 
 # 액션 저장
 def save_action():
@@ -342,48 +405,6 @@ def infer_viewid(hierarchy, action):
         text = ans_lst[1].split("=")[-1]
         function_name = ans_lst[2].split("=")[-1]
         return key, text, function_name
-
-
-# DB에 저장되어 있는 전체 시나리오 및 테스트 불러오기
-def load_scenario():
-    hierarchy = app.config['HIERARCHY']
-    action_collection = app.config['ACTION_COLLECTION']
-
-    if request.method == 'GET':
-        # 시나리오 번호와 작업 번호별로 문서를 오름차순으로 정렬
-        hierarchy_docs = hierarchy.find().sort([
-            ("scenario_num", ASCENDING),  # 먼저 시나리오 번호로 정렬
-            ("task_num", ASCENDING)  # 그 다음 작업 번호로 정렬
-        ])
-
-        action_docs = action_collection.find().sort([
-            ("scenario_num", ASCENDING),  # 먼저 시나리오 번호로 정렬
-            ("action_num", ASCENDING)  # 그 다음 액션 번호로 정렬
-        ])
-
-        hierarchy_dict = {} # 시나리오 번호: 계층 정보(작업 번호, 스크린샷 url, object id)
-        action_dict = {} # 시나리오 번호: 액션 정보(액션, object id)
-        for hierarchy_doc in hierarchy_docs:
-
-            scenario_num = hierarchy_doc['scenario_num']
-            if scenario_num not in hierarchy_dict:
-                hierarchy_dict[scenario_num] = []
-            hierarchy_dict[scenario_num].append({
-                'task_num': hierarchy_doc['task_num'],
-                'screenshot_url': hierarchy_doc['screenshot_url'],
-                'object_id': str(hierarchy_doc['_id'])
-            })
-
-        for action_doc in action_docs:
-            action_num = action_doc['scenario_num']
-            if action_num not in action_dict:
-                action_dict[action_num] = []
-            action_dict[action_num].append({
-                'action': action_doc['action'],
-                'object_id': str(action_doc['_id'])
-            })
-
-        return jsonify({'hierarchy': hierarchy_dict, 'action': action_dict})
 
 
 # 스크롤로 전체 화면 계층 정보 수집
