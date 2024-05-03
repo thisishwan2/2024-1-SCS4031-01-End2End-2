@@ -82,6 +82,9 @@ export default function Home() {
   const {mutate: postAction} = useMutation({mutationFn: async ({index,action}: {index: number, action:string}) => {
     return axios.post(`http://127.0.0.1:5000/e2e/scenarios/${id}/action`, {index: String(index), action});
   }});
+  const {mutate:postRun} = useMutation({mutationFn: async () => {
+    return axios.post(`http://127.0.0.1:5000/e2e/scenarios/${id}/run`);
+  },});
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const [scenario, setScenario] = useState([
@@ -179,7 +182,9 @@ export default function Home() {
                 <Typography paragraph margin="0">
                   {item.title}
                 </Typography>
-                <Button>
+                <Button onClick={() =>{
+                  postRun();
+                }}>
                   시나리오 실행
                 </Button>
               </Box>
