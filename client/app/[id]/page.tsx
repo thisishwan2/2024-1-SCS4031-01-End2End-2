@@ -1,5 +1,5 @@
 'use client'
-import { Box, Button, CssBaseline, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Toolbar, Typography, styled, useTheme } from "@mui/material";
+import { Box, Button, CssBaseline, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, TextField, Toolbar, Typography, styled, useTheme } from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import { useState } from "react";
@@ -7,6 +7,9 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import InboxIcon from '@mui/icons-material/MoveToInbox';
 import MailIcon from '@mui/icons-material/Mail';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "next/navigation";
+import axios from "axios";
 
 const drawerWidth = 240;
 
@@ -60,6 +63,25 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 }));
 
 export default function Home() {
+  const [actionText, setActionText] = useState('');
+  const {id} = useParams();
+  const queryClient= useQueryClient();
+  const {data: scenarioDetail} = useQuery({queryKey: ['scenario', 'detail', id], queryFn: async ()=> {
+    const response =  await axios.get<{
+      _id: string;
+      run_status: string;
+      scenario_name: string;
+      scenario: {hierachy?: string; action?:string}[]
+    }>(`http://127.0.0.1:5000/e2e/scenarios/${id}`);
+    return response.data;
+  }})
+
+  const {mutate: postHierachy} = useMutation({mutationFn: async ({index}: {index: number}) => {
+    return axios.post(`http://127.0.0.1:5000/e2e/scenarios/${id}/hierachy`, {index: String(index)});
+  }});
+  const {mutate: postAction} = useMutation({mutationFn: async ({index,action}: {index: number, action:string}) => {
+    return axios.post(`http://127.0.0.1:5000/e2e/scenarios/${id}/action`, {index: String(index), action});
+  }});
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const [scenario, setScenario] = useState([
@@ -77,6 +99,18 @@ export default function Home() {
   const handleDrawerClose = () => {
     setOpen(false);
   };
+
+  const handleHierachyButtonClick = (index: number) => () => {
+    postHierachy({index}, {onSuccess:()=> {
+      queryClient.invalidateQueries({queryKey: ['scenario', 'detail', id]})
+    }});
+  }
+
+  const handleActionButtonClick = (index: number) => () => {
+    postAction({index,action:actionText}, {onSuccess:()=> {
+      queryClient.invalidateQueries({queryKey: ['scenario', 'detail', id]})
+    }});
+  }
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -99,7 +133,7 @@ export default function Home() {
           </Typography>
 
           
-          <Button style={{marginLeft: "1000px"}} color="warning" variant='contained'>현재 계층정보 확인</Button>
+          
         </Toolbar>
       </AppBar>
       <Drawer
@@ -134,18 +168,6 @@ export default function Home() {
           ))}
         </List>
         <Divider />
-        {/* <List>
-          {['All mail', 'Trash', 'Spam'].map((text, index) => (
-            <ListItem key={text} disablePadding>
-              <ListItemButton>
-                <ListItemIcon>
-                  {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
-                </ListItemIcon>
-                <ListItemText primary={text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List> */}
       </Drawer>
       <Main open={open}>
         <DrawerHeader />
@@ -162,9 +184,9 @@ export default function Home() {
                 </Button>
               </Box>
               <Box display="flex" gap="40px" alignItems="center" marginBottom="40px">
-              <Box bgcolor="lightgray" width="200px" height="300px">old</Box>
-              <Box bgcolor="lightgray" width="200px" height="300px">action</Box>
-              <Box bgcolor="lightgray" width="200px" height="300px">new</Box> 
+              {scenarioDetail?.scenario?.map((item,index) => item.hierachy !== undefined  ? (<Box key={item.hierachy|| index} bgcolor="lightgray" width="200px" height="300px"><Button variant="contained" onClick={handleHierachyButtonClick(index)}>화면정보등록</Button></Box>): (<Box key={item.action||index} bgcolor="lightgray" width="200px" height="300px"><TextField label="액션정보" value={actionText} onChange={(e)=> {
+                setActionText(e.target.value);
+              }} /><Button variant="contained" onClick={handleActionButtonClick(index)}>등록</Button></Box>))}
               <Button variant="contained" onClick={() => {
                 const newScenario = scenario.map(sc => {
                   if(sc.id === item.id) {
@@ -188,14 +210,6 @@ export default function Home() {
           
           })
          }
-        <Button  variant="contained" onClick={() => {
-          setScenario([...scenario, {
-            id: scenario.length + 1,
-            title: `시나리오 ${scenario.length + 1}`,
-            list: []
-          }])
-        }}>시나리오 추가</Button>
-    
       </Main>
     </Box>
   );
