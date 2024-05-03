@@ -115,7 +115,7 @@ class save_action(Resource):
         return service.save_action()
 
 # 시나리오 리스트 불러오기
-@e2e.route('/secnarios')
+@e2e.route('/scenarios')
 class scenarios(Resource):
     @api.response(200, 'Success', scenario_list_model)  # 응답 모델 적용
     def get(self):
@@ -126,6 +126,17 @@ class scenarios(Resource):
         scenarios = service.scenarios()  # 시나리오 데이터를 불러오는 서비스 함수
         return scenarios  # 모델에 맞게 데이터를 포맷
 
+# 시나리오 상세 조회
+@e2e.route('/scenario/<string:scenario_id>')
+class scenario(Resource):
+    @api.response(200, 'Success')  # 응답 모델 적용
+    def get(self, scenario_id):
+        '''
+        시나리오 상세 조회
+        :param scenario_id: 시나리오 아이디
+        :return: 시나리오 상세 정보
+        '''
+        return service.scenario(scenario_id)
 
 # DB에 저장되어 있는 시나리오 불러오기
 @e2e.route('/load-scenario')
