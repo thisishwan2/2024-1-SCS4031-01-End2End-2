@@ -41,18 +41,20 @@ add_task_model = e2e.model('AddTask', {
     'object_id': fields.String(description='Object ID', required=True),
 })
 
-
-
-current_view = e2e.model('current_view', {
-    'scenario_num': fields. String(description = '시나리오 번호', required = True, example = '1'),
-    'task_num': fields. String(description = '작업 번호', required = True, example = '1')
+# 계층 정보 추출 요청 모델
+extracted_hierarchy_model = e2e.model('ExtractedHierarchy', {
+    'object_id': fields.String(description='Object ID', required=True),
+    'index': fields.String(description='순서', required=True),
 })
-current_view_response_model = api.model('currentViewResponse', {
+
+# 계층 정보 추출 응답 모델
+extracted_hierarchy_response_model = api.model('ExtractedHierarchyResponse', {
     'object_id': fields.String(description='object Id', required=True),
     'screenshot_url': fields.String(description='스크린샷 url', required=True),
-    'scenario_num': fields.String(description='시나리오 번호', required=True),
-    'task_num': fields.String(description='작업 번호', required=True),
 })
+
+
+
 
 test_action = e2e.model('action', {
     'action': fields. String(description = '수행하고자 하는 action을 입력하세요', required = True, example = '1번 id를 찾아서 클릭해줘'),
@@ -113,8 +115,17 @@ class scenarios(Resource):
         scenarios = service.scenarios()  # 시나리오 데이터를 불러오는 서비스 함수
         return scenarios  # 모델에 맞게 데이터를 포맷
 
+    # 시나리오 생성
+    @e2e.expect(create_scenario_model)
+    @api.response(200, 'Success')  # 응답 모델 적용
+    def post(self):
+        '''
+        시나리오 생성
+        '''
+        return service.create_scenario()
+
 # 시나리오 상세 조회
-@e2e.route('/scenario/<string:scenario_id>')
+@e2e.route('/scenarios/<string:scenario_id>')
 class scenario(Resource):
     @api.response(200, 'Success')  # 응답 모델 적용
     def get(self, scenario_id):
@@ -125,18 +136,6 @@ class scenario(Resource):
         '''
         return service.scenario(scenario_id)
 
-# 시나리오 생성
-@e2e.route('/scenarios')
-class create_scenario(Resource):
-    # @e2e.expect(create_scenario_model)
-    @e2e.expect(create_scenario_model)
-    @api.response(200, 'Success')  # 응답 모델 적용
-    def post(self):
-        '''
-        시나리오 생성
-        :return: 생성된 시나리오 아이디
-        '''
-        return service.create_scenario()
 
 # 시나리오 작업 추가
 @e2e.route('/scenarios/tasks')
@@ -146,19 +145,14 @@ class add_task(Resource):
     def post(self):
         '''
         시나리오 작업 추가
-        :return: 생성된 시나리오 아이디
         '''
         return service.add_task()
 
-
-
 # 현재 계층 정보 추출 및 DB에 저장
-@e2e.route('/scenario/<string:scenario_id>/hierarchy')
-@api.doc(responses={200: 'Success', 400: 'Error'},
-            description='이 API 엔드포인트는 현재 계층 정보를 추출하고 데이터베이스에 저장합니다.')
-class current_view(Resource):
-    @e2e.expect(current_view)
-    @api.response(200, 'Success', current_view_response_model)  # 응답 모델 적용
+@e2e.route('/scenarios/<string:scenario_id>/hierarchy')
+class extracted_hierarchy(Resource):
+    @e2e.expect(extracted_hierarchy_model)
+    @api.response(200, 'Success', extracted_hierarchy_response_model)
     def post(self):
         '''
         현재 계층 정보 추출 및 DB에 저장
