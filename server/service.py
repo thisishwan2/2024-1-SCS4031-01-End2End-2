@@ -80,7 +80,7 @@ def create_scenario():
 
         scenario_document = {'scenario_name': scenario_name,
                              'run_status': 'ready',
-                             'scenario': [{'hierachy': []},{'action': ""},{'hierachy': []}]
+                             'scenario': [{'hierarchy': []},{'action': ""},{'hierarchy': []}]
                              }
 
         inserted_data = scenario_list.insert_one(scenario_document)
@@ -100,7 +100,7 @@ def add_task():
 
         if scenario_doc:
             # 시나리오 문서에 작업 추가
-            new_tasks = [{'action': ''}, {'hierachy': []}]
+            new_tasks = [{'action': ''}, {'hierarchy': []}]
             updated_scenario = scenario_list.find_one_and_update(
                 {'_id': ObjectId(object_id)},
                 {'$push': {'scenario': {'$each': new_tasks}}},
@@ -155,8 +155,8 @@ def extracted_hierarchy(scenario_id):
 
         # MongoDB에서 특정 시나리오의 hierarchy 배열을 업데이트
         result = scenario_list.update_one(
-            {'_id': ObjectId(object_id), f'scenario.{index}.hierachy': {'$exists': True}},
-            {'$push': {f'scenario.{index}.hierachy': {
+            {'_id': ObjectId(object_id), f'scenario.{index}.hierarchy': {'$exists': True}},
+            {'$push': {f'scenario.{index}.hierarchy': {
                 '$each': [ui_data, {'screenshot_url': screenshot_url}, {'status': 'ready'}]}}}
         )
 
@@ -300,19 +300,19 @@ def run_scenario():
     if request.method == 'POST':
         hierarchy = app.config['HIERARCHY']
 
-        before_hierachy_id = request.json['before_hierachy_id']
+        before_hierarchy_id = request.json['before_hierarchy_id']
         action = request.json['action']
-        after_hierachy_id = request.json['after_hierachy_id']
+        after_hierarchy_id = request.json['after_hierarchy_id']
 
         # 전 후 계층 정보만 찾기
-        before_hierachy = hierarchy.find_one({'_id': ObjectId(str(before_hierachy_id))},
+        before_hierarchy = hierarchy.find_one({'_id': ObjectId(str(before_hierarchy_id))},
                                              {'_id': 0, 'scenario_num': 0, 'task_num': 0, 'screenshot_url': 0})
 
-        after_hierachy = hierarchy.find_one({'_id': ObjectId(str(after_hierachy_id))},
+        after_hierarchy = hierarchy.find_one({'_id': ObjectId(str(after_hierarchy_id))},
                                             {'_id': 0, 'scenario_num': 0, 'task_num': 0, 'screenshot_url': 0})
 
-        # 시나리오 실행(before_hierachy 와 action을 GPT에게 입력 후 결과를 받아온다.
-        result = infer_viewid(before_hierachy, action) # result의 형태는 key, function_name 혹은 key, text, function_name이다.
+        # 시나리오 실행(before_hierarchy 와 action을 GPT에게 입력 후 결과를 받아온다.
+        result = infer_viewid(before_hierarchy, action) # result의 형태는 key, function_name 혹은 key, text, function_name이다.
 
         # text가 없는 경우
         # 수정: 문자열을 이용해서 다른 클래스의 함수를 실행시키는 방법
@@ -350,9 +350,9 @@ def run_scenario():
 
             next_hierarchy[unique_id] = component
         print(next_hierarchy)
-        print(after_hierachy)
+        print(after_hierarchy)
         # 두 계층 구조가 동일하면 성공
-        if next_hierarchy == after_hierachy:
+        if next_hierarchy == after_hierarchy:
             return jsonify({'message': 'Success'})
         else:
             return jsonify({'message': 'Fail'})
