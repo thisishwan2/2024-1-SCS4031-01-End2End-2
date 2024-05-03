@@ -1,14 +1,15 @@
 from flask import Flask
 from pymongo import MongoClient
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)  # 모든 도메인에서의 CORS 요청을 허용
 
 from server import routes
 
 # db 연동
 client = MongoClient(host='localhost', port=27017)
 db = client['e2e_database']
-hierarchy = db.ui_hierarchy
-action_collection = db.action_collection
-app.config['HIERARCHY'] = db.ui_hierarchy
-app.config['ACTION_COLLECTION'] = db.action_collection
+scenario= db.scenario_collection
+
+app.config['scenario'] = db.scenario_collection
