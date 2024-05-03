@@ -7,14 +7,14 @@ from pathlib import Path
 from bson.objectid import ObjectId
 from pymongo import ASCENDING
 
-from com.dtmilano.android.viewclient import ViewClient
+from com.dtmilano.android.viewclient import ViewClient, ListView, View, UiScrollable
 from flask import Flask, request, jsonify
 from ppadb.client import Client as AdbClient
 import xml.etree.ElementTree as elemTree
 import boto3
 import openai
 from openai import OpenAI
-from fine_tuning import init_train_data
+from server.fine_tuning import init_train_data
 
 from server import adb_function
 from server import app
@@ -32,7 +32,6 @@ client = OpenAI(api_key=openai.api_key)
 
 # 시리얼 번호
 serial_no = None
-vc = None
 device = None
 
 # S3 연결
@@ -79,6 +78,27 @@ def s3_put_object(file_dir):
         return False
     return image_url
 
+def scenarios():
+    if request.method == 'GET':
+        scenario_list = app.config['scenario']
+        cursor = scenario_list.find({}, {'scenario_name': 1})
+
+        # 쿼리 결과를 JSON 직렬화 가능한 형태로 변환
+        scenarios = []
+        for doc in cursor:
+            # ObjectId를 문자열로 변환
+            doc['_id'] = str(doc['_id']) if '_id' in doc else None
+            scenarios.append(doc)
+
+        return jsonify(list(scenarios))
+
+
+
+
+
+
+
+
 # 디바이스의 현재 화면 스크린샷
 def take_screenshot():
     # 현재 시간을 이용하여 파일 이름 생성
@@ -124,7 +144,8 @@ def adb_connect():
         device = devices[0]
         serial_no = device.serial
         print(serial_no)
-
+        vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
+        print(vc)
         return jsonify({'message': 'Device connected'})
 
 # adb 서버 시작 함수
@@ -139,7 +160,6 @@ def start_adb_server():
 # 현재 계층 정보 추출 및 DB에 저장
 def current_view():
     global serial_no
-    global vc
 
     hierarchy = app.config['HIERARCHY']
 
@@ -210,6 +230,11 @@ def save_action():
                         'task_num': action_num
         })
 
+def execute_function(function_name, *args, **kwargs):
+    # file1 모듈의 함수를 동적으로 호출하면서, 인자와 키워드 인자 전달
+    func = getattr(adb_function, function_name)
+    func(*args, **kwargs)
+
 # 테스트 시나리오 실행
 def run_scenario():
     if request.method == 'POST':
@@ -229,23 +254,51 @@ def run_scenario():
         # 시나리오 실행(before_hierachy 와 action을 GPT에게 입력 후 결과를 받아온다.
         result = infer_viewid(before_hierachy, action) # result의 형태는 key, function_name 혹은 key, text, function_name이다.
 
-        adb_function_instance = getattr(adb_function, adb_function)()
-
         # text가 없는 경우
         # 수정: 문자열을 이용해서 다른 클래스의 함수를 실행시키는 방법
         if len(result) == 2:
             key, function_name = result
 
             if function_name == 'back' or function_name == 'home' or 'swipe' in function_name:
-                globals()[function_name]()
+                execute_function(function_name)
             else:
-                globals()[function_name](key) # 문자열로 함수 실행
+                execute_function(function_name, key) # 문자열로 함수 실행
 
         # text가 있는 경우
         elif len(result) == 3:
             key, text, function_name = result
-            globals()[function_name](key, text)
-        print("success")
+            execute_function(function_name, key, text)
+
+        # 새로운 계층 정보를 반환
+        vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
+        ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)
+
+        # 새로운 계층 정보 딕셔너리
+        next_hierarchy = {}
+
+        # mongodb에 저장
+        for ui in ui_list:
+            pattern_line_separator = '\n'
+            ui = re.sub(pattern_line_separator, " ", ui)
+
+            # 정규식을 사용하여 문자열을 분리합니다.
+            pattern = r'(.+?) id/no_id/(\d+)'
+            match = re.match(pattern, ui)
+
+            component = match.group(1).strip()  # 앞뒤 공백 제거
+            unique_id = match.group(2)
+
+            next_hierarchy[unique_id] = component
+        print(next_hierarchy)
+        print(after_hierachy)
+        # 두 계층 구조가 동일하면 성공
+        if next_hierarchy == after_hierachy:
+            return jsonify({'message': 'Success'})
+        else:
+            return jsonify({'message': 'Fail'})
+
+
+
 
 # adb 함수 학습시켜서 응답으로 함수도 내보내게 해야하고, 응답 스키마도 설정해야함.
 def infer_viewid(hierarchy, action):
@@ -290,6 +343,7 @@ def infer_viewid(hierarchy, action):
         function_name = ans_lst[2].split("=")[-1]
         return key, text, function_name
 
+
 # DB에 저장되어 있는 전체 시나리오 및 테스트 불러오기
 def load_scenario():
     hierarchy = app.config['HIERARCHY']
@@ -330,3 +384,20 @@ def load_scenario():
             })
 
         return jsonify({'hierarchy': hierarchy_dict, 'action': action_dict})
+
+
+# 스크롤로 전체 화면 계층 정보 수집
+def auto_scroll_and_capture():
+    global serial_no
+    vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
+    view_instance = View(device, serial_no)  # 뷰 인스턴스 생성
+    print(view_instance)
+
+    scrollable = UiScrollable(view_instance)
+    scrollable.setViewClient(vc)
+
+    print(scrollable)
+    res=scrollable.scrollAndCapture()
+    print(res)
+
+    return res
