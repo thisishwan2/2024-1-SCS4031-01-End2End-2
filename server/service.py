@@ -37,6 +37,39 @@ client = OpenAI(api_key=openai.api_key)
 serial_no = None
 device = None
 
+# 시나리오 리스트 조회
+def scenarios():
+    if request.method == 'GET':
+        scenario_list = app.config['scenario']
+        cursor = scenario_list.find({}, {'scenario_name': 1, 'run_status': 1})
+
+        # 쿼리 결과를 JSON 직렬화 가능한 형태로 변환
+        scenarios = []
+        for doc in cursor:
+            # ObjectId를 문자열로 변환
+            doc['_id'] = str(doc['_id']) if '_id' in doc else None
+            scenarios.append(doc)
+
+        return jsonify(list(scenarios))
+
+# 시나리오 상세 보기
+def scenario(scenario_id):
+    if request.method == 'GET':
+        scenario_list = app.config['scenario']
+
+        try:
+            # MongoDB에서 시나리오 문서를 조회
+            scenario_doc = scenario_list.find_one({'_id': ObjectId(scenario_id)})
+        except errors.InvalidId:
+            return jsonify({'error': 'Invalid scenario ID format'}), 400
+
+        if scenario_doc:
+            scenario_doc['_id'] = str(scenario_doc['_id'])
+            return jsonify(scenario_doc)
+        else:
+            return jsonify({'error': 'Scenario not found'}), 404
+
+
 # S3 연결
 def s3_connection():
     '''
@@ -80,37 +113,6 @@ def s3_put_object(file_dir):
         print(e)
         return False
     return image_url
-
-def scenarios():
-    if request.method == 'GET':
-        scenario_list = app.config['scenario']
-        cursor = scenario_list.find({}, {'scenario_name': 1, 'run_status': 1})
-
-        # 쿼리 결과를 JSON 직렬화 가능한 형태로 변환
-        scenarios = []
-        for doc in cursor:
-            # ObjectId를 문자열로 변환
-            doc['_id'] = str(doc['_id']) if '_id' in doc else None
-            scenarios.append(doc)
-
-        return jsonify(list(scenarios))
-
-# 시나리오 상세 보기
-def scenario(scenario_id):
-    if request.method == 'GET':
-        scenario_list = app.config['scenario']
-
-        try:
-            # MongoDB에서 시나리오 문서를 조회
-            scenario_doc = scenario_list.find_one({'_id': ObjectId(scenario_id)})
-        except errors.InvalidId:
-            return jsonify({'error': 'Invalid scenario ID format'}), 400
-
-        if scenario_doc:
-            scenario_doc['_id'] = str(scenario_doc['_id'])
-            return jsonify(scenario_doc)
-        else:
-            return jsonify({'error': 'Scenario not found'}), 404
 
 # 전체 실행시
 
