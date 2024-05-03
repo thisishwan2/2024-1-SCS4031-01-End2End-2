@@ -125,7 +125,7 @@ class scenarios(Resource):
         return service.create_scenario()
 
 # 시나리오 상세 조회
-@e2e.route('/scenario/<string:scenario_id>')
+@e2e.route('/scenarios/<string:scenario_id>')
 class scenario(Resource):
     @api.response(200, 'Success')  # 응답 모델 적용
     def get(self, scenario_id):
@@ -149,7 +149,7 @@ class add_task(Resource):
         return service.add_task()
 
 # 현재 계층 정보 추출 및 DB에 저장
-@e2e.route('/scenario/<string:scenario_id>/hierarchy')
+@e2e.route('/scenarios/<string:scenario_id>/hierarchy')
 class extracted_hierarchy(Resource):
     @e2e.expect(extracted_hierarchy_model)
     @api.response(200, 'Success', extracted_hierarchy_response_model)
