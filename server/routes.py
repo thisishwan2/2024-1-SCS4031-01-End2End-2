@@ -9,12 +9,22 @@ e2e = api.namespace(name = "e2e", description='e2e API')
 # 개별 시나리오 아이템 모델
 scenario_model = api.model('scenario', {
     'object_id': fields.String(description='Object ID', required=True, attribute=lambda x: str(x['_id'])),
-    'scenario_name': fields.String(description='시나리오 이름', required=True)
+    'scenario_name': fields.String(description='시나리오 이름', required=True),
+    'run_status': fields.String(description='시나리오 실행 상태', required=True),
 })
 
 # 시나리오 리스트를 위한 모델
 scenario_list_model = api.model('scenario_list', {
     'scenarios': fields.List(fields.Nested(scenario_model), description='시나리오 리스트')
+})
+
+# 시나리오 상세 정보 모델
+scenario_detail_model = api.model('scenario_detail', {
+    'object_id': fields.String(description='Object ID', required=True),
+    'scenario_name': fields.String(description='시나리오 이름', required=True),
+    'run_status': fields.String(description='시나리오 실행 상태', required=True),
+    'actions': fields.List(fields.String(description='액션 리스트', required=True)),
+    'hierarchies': fields.List(fields.String(description='계층 리스트', required=True))
 })
 
 
