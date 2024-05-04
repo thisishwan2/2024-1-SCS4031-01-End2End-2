@@ -78,11 +78,11 @@ HierarchyDetail = api.model('HierarchyDetail', {
     'task_num': fields.String(description='작업 번호', required=True)
 })
 
-run_scenario = e2e.model('scenario', {
-    'before_hierachy_id': fields.String(description = 'action 실행 전 계층 objectId', required = True, example = '1'),
-    'action': fields.String(description = '수행하고자 하는 action', required = True, example = '1번 id를 찾아서 클릭해줘'),
-    'after_hierachy_id': fields.String(description = 'action 실행 후 계층 objectId', required = True, example = '2')
-})
+# run_scenario = e2e.model('scenario', {
+#     'before_hierachy_id': fields.String(description = 'action 실행 전 계층 objectId', required = True, example = '1'),
+#     'action': fields.String(description = '수행하고자 하는 action', required = True, example = '1번 id를 찾아서 클릭해줘'),
+#     'after_hierachy_id': fields.String(description = 'action 실행 후 계층 objectId', required = True, example = '2')
+# })
 run_scenario_response_model = api.model('RunScenarioResponse', {
     'result': fields.String(description='시나리오 실행 결과', required=True, example='success')
 })
@@ -168,17 +168,18 @@ class save_action(Resource):
         '''
         return service.save_action(scenario_id)
 
-# 시나리오 실행(계층정보 - 액션 - 계층정보)
-@e2e.route('/run-scenario')
+# 시나리오 실행(수정)(request는 없음, response도 success만)
+@e2e.route('/scenarios/<string:scenario_id>/run')
 class run_scenario(Resource):
-    @e2e.expect(run_scenario)
     @api.response(200, 'Success', run_scenario_response_model)  # 응답 모델 적용
-    def post(self):
+    def post(self, scenario_id):
         '''
         시나리오 실행(계층정보 - 액션 - 계층정보)
         :return: 시나리오 실행 결과
         '''
-        return service.run_scenario()
+        return service.run_scenario(scenario_id)
+
+# 전체 시나리오 실행
 
 
 @e2e.route('/scroll-test')

@@ -52,13 +52,13 @@ def scenarios():
 
         return jsonify(list(scenarios))
 
-# 시나리오 상세 보기
+# 시나리오 상세 보기([{},{},{}]) 이 형태로 수정
 def scenario(scenario_id):
     if request.method == 'GET':
         scenario_list = app.config['scenario']
 
         try:
-            # MongoDB에서 시나리오 문서를 조회
+            # MongoDB에서 시나리오 문서를 조회()
             scenario_doc = scenario_list.find_one({'_id': ObjectId(scenario_id)})
 
         # 잘못된 scenario_id를 전달받은 경우 예외처리가 안됨
@@ -182,6 +182,156 @@ def save_action(scenario_id):
     return jsonify({"message": "success"})
 
 
+# 문자열로 받은 함수를 실행
+def execute_function(function_name, *args, **kwargs):
+    # file1 모듈의 함수를 동적으로 호출하면서, 인자와 키워드 인자 전달
+    func = getattr(adb_function, function_name)
+    func(*args, **kwargs)
+
+# 테스트 시나리오 실행
+def run_scenario(scenario_id):
+    scenario_list = app.config['scenario']
+    if request.method == 'POST':
+
+        scenario = scenario_list.find_one({'_id': ObjectId(scenario_id)})
+        scenario_seq = scenario['scenario']
+
+        print(scenario_seq)
+
+        # try-catch로 success/fail 처리
+        for i in range(0,len(scenario_seq),3):
+            before = scenario_seq[i]
+            action = scenario_seq[i+1]
+            after = scenario_seq[i+2]
+
+            before_hierarchy = before['hierarchy'][0]
+            action_command = action['action']
+            after_hierarchy = after['hierarchy'][0]
+
+            # 각각 status 인덱스
+            before_index = f'scenario.{i}.hierarchy.2.status'
+            action_index = f'scenario.{i + 1}.action'
+            after_index = f'scenario.{i + 2}.hierarchy.2.status'
+
+            # before은 성공처리
+            scenario_list.update_one(
+                {'_id': ObjectId(scenario_id)},
+                {'$set': {before_index: 'success'}}
+            )
+
+
+            # 아래 부분은 수정해야함
+            result = infer_viewid(before_hierarchy, action_command)
+
+            # text가 없는 경우
+            # 수정: 문자열을 이용해서 다른 클래스의 함수를 실행시키는 방법
+            if len(result) == 2:
+                key, function_name = result
+
+                if function_name == 'back' or function_name == 'home' or 'swipe' in function_name:
+                    execute_function(function_name)
+                else:
+                    execute_function(function_name, key, serial_no) # 문자열로 함수 실행
+
+            # text가 있는 경우
+            elif len(result) == 3:
+                key, text, function_name = result
+                execute_function(function_name, key, text, serial_no)
+
+            # action은 성공처리(코드 작성)
+
+
+            # 새로운 계층 정보를 반환
+            vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
+            ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)
+
+            # 새로운 계층정보를 before과 비교하기 위해 포매팅함.
+            ui_data = {}
+            # mongodb에 저장
+            for ui in ui_list:
+                pattern_line_separator = '\n'
+                ui = re.sub(pattern_line_separator, " ", ui)
+
+                # 정규식을 사용하여 문자열을 분리합니다.
+                pattern = r'(.+?) id/no_id/(\d+)'
+                match = re.match(pattern, ui)
+
+                component = match.group(1).strip()  # 앞뒤 공백 제거
+                unique_id = match.group(2)
+
+                ui_data[unique_id] = component
+
+            # before과 after을 비교하여 성공/실패 처리
+            if ui_data == after_hierarchy:
+                scenario_list.update_one(
+                    {'_id': ObjectId(scenario_id)},
+                    {'$set': {after_index: 'success'}}
+                )
+            else: # 실패하면 이후 시나리오 태스크는 진행하지 않고, fail로 처리
+                scenario_list.update_one(
+                    {'_id': ObjectId(scenario_id)},
+                    {'$set': {after_index: 'fail'}}
+                )
+
+                # 이후는 모두 실패
+
+        # 전체가 성공이면 도큐먼트의 run_status를 success로 변경
+
+        return jsonify({'message': 'Success'})
+
+
+
+
+
+
+# adb 함수 학습시켜서 응답으로 함수도 내보내게 해야하고, 응답 스키마도 설정해야함.
+def infer_viewid(hierarchy, action):
+    '''
+    action을 입력받아서 view id를 추론하는 함수
+    :param hierarchy: 계층 정보
+    :param action: 수행하고자 하는 action
+    :return: 추론된 view id, 실행할 함수
+    '''
+    # 계층정보를 문자열로 변환
+    hierarchy_info = json.dumps(hierarchy, indent=4, ensure_ascii=False)  # 보기 좋게 포맷팅
+    print(hierarchy_info)
+
+    msg = "ui: \n" + hierarchy_info + "\naction: " + action
+
+    # action을 GPT에 입력(gpt api는 이전 대회를 기억하지 못함)
+    response = client.chat.completions.create( # 해당 요청과 model은 legacy 모델이므로 현재 최신 방법과 좀 다르다.
+        model="gpt-3.5-turbo",
+        # model="ft:davinci-002:personal::9J3zU2Lo",
+        messages=[
+            {"role": "system", "content": init_train_data},
+            {"role": "user", "content": msg}
+        ],
+        max_tokens=50,
+        temperature=0.5
+    )
+    # print(response)
+    answer = response.choices[0].message.content
+    print(answer)
+
+    ans_lst = answer.split(",")
+
+    # 응답 text가 없는 경우
+    if len(ans_lst)==2:
+        key = ans_lst[0].split("=")[-1]
+        function_name = ans_lst[1].split("=")[-1]
+
+        return key, function_name
+    else:
+        key = ans_lst[0].split("=")[-1]
+        text = ans_lst[1].split("=")[-1]
+        function_name = ans_lst[2].split("=")[-1]
+        return key, text, function_name
+
+
+
+
+
+
 
 
 # S3 연결
@@ -227,8 +377,6 @@ def s3_put_object(file_dir):
         print(e)
         return False
     return image_url
-
-# 전체 실행시
 
 
 # 디바이스의 현재 화면 스크린샷
@@ -288,120 +436,6 @@ def start_adb_server():
         print("ADB server started successfully.")
     except subprocess.CalledProcessError as e:
         print("Error:", e)
-
-
-def execute_function(function_name, *args, **kwargs):
-    # file1 모듈의 함수를 동적으로 호출하면서, 인자와 키워드 인자 전달
-    func = getattr(adb_function, function_name)
-    func(*args, **kwargs)
-
-# 테스트 시나리오 실행
-def run_scenario():
-    if request.method == 'POST':
-        hierarchy = app.config['HIERARCHY']
-
-        before_hierarchy_id = request.json['before_hierarchy_id']
-        action = request.json['action']
-        after_hierarchy_id = request.json['after_hierarchy_id']
-
-        # 전 후 계층 정보만 찾기
-        before_hierarchy = hierarchy.find_one({'_id': ObjectId(str(before_hierarchy_id))},
-                                             {'_id': 0, 'scenario_num': 0, 'task_num': 0, 'screenshot_url': 0})
-
-        after_hierarchy = hierarchy.find_one({'_id': ObjectId(str(after_hierarchy_id))},
-                                            {'_id': 0, 'scenario_num': 0, 'task_num': 0, 'screenshot_url': 0})
-
-        # 시나리오 실행(before_hierarchy 와 action을 GPT에게 입력 후 결과를 받아온다.
-        result = infer_viewid(before_hierarchy, action) # result의 형태는 key, function_name 혹은 key, text, function_name이다.
-
-        # text가 없는 경우
-        # 수정: 문자열을 이용해서 다른 클래스의 함수를 실행시키는 방법
-        if len(result) == 2:
-            key, function_name = result
-
-            if function_name == 'back' or function_name == 'home' or 'swipe' in function_name:
-                execute_function(function_name)
-            else:
-                execute_function(function_name, key) # 문자열로 함수 실행
-
-        # text가 있는 경우
-        elif len(result) == 3:
-            key, text, function_name = result
-            execute_function(function_name, key, text)
-
-        # 새로운 계층 정보를 반환
-        vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
-        ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)
-
-        # 새로운 계층 정보 딕셔너리
-        next_hierarchy = {}
-
-        # mongodb에 저장
-        for ui in ui_list:
-            pattern_line_separator = '\n'
-            ui = re.sub(pattern_line_separator, " ", ui)
-
-            # 정규식을 사용하여 문자열을 분리합니다.
-            pattern = r'(.+?) id/no_id/(\d+)'
-            match = re.match(pattern, ui)
-
-            component = match.group(1).strip()  # 앞뒤 공백 제거
-            unique_id = match.group(2)
-
-            next_hierarchy[unique_id] = component
-        print(next_hierarchy)
-        print(after_hierarchy)
-        # 두 계층 구조가 동일하면 성공
-        if next_hierarchy == after_hierarchy:
-            return jsonify({'message': 'Success'})
-        else:
-            return jsonify({'message': 'Fail'})
-
-
-
-
-# adb 함수 학습시켜서 응답으로 함수도 내보내게 해야하고, 응답 스키마도 설정해야함.
-def infer_viewid(hierarchy, action):
-    '''
-    action을 입력받아서 view id를 추론하는 함수
-    :param hierarchy: 계층 정보
-    :param action: 수행하고자 하는 action
-    :return: 추론된 view id, 실행할 함수
-    '''
-    # 계층정보를 문자열로 변환
-    hierarchy_info = json.dumps(hierarchy, indent=4, ensure_ascii=False)  # 보기 좋게 포맷팅
-    print(hierarchy_info)
-
-    msg = "ui: \n" + hierarchy_info + "\naction: " + action
-
-    # action을 GPT에 입력(gpt api는 이전 대회를 기억하지 못함)
-    response = client.chat.completions.create( # 해당 요청과 model은 legacy 모델이므로 현재 최신 방법과 좀 다르다.
-        model="gpt-3.5-turbo",
-        # model="ft:davinci-002:personal::9J3zU2Lo",
-        messages=[
-            {"role": "system", "content": init_train_data},
-            {"role": "user", "content": msg}
-        ],
-        max_tokens=50,
-        temperature=0.5
-    )
-    # print(response)
-    answer = response.choices[0].message.content
-    print(answer)
-
-    ans_lst = answer.split(",")
-
-    # 응답 text가 없는 경우
-    if len(ans_lst)==2:
-        key = ans_lst[0].split("=")[-1]
-        function_name = ans_lst[1].split("=")[-1]
-
-        return key, function_name
-    else:
-        key = ans_lst[0].split("=")[-1]
-        text = ans_lst[1].split("=")[-1]
-        function_name = ans_lst[2].split("=")[-1]
-        return key, text, function_name
 
 
 # 스크롤로 전체 화면 계층 정보 수집
