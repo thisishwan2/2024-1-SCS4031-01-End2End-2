@@ -80,7 +80,7 @@ def create_scenario():
 
         scenario_document = {'scenario_name': scenario_name,
                              'run_status': 'ready',
-                             'scenario': [{'hierarchy': []},{'action': ""},{'hierarchy': []}]
+                             'scenario': [{'ui_data': "", 'screenshot_url': "", 'status': "ready"},{'action': "", 'status': "ready"},{'ui_data': "", 'screenshot_url': "", 'status': "ready"}]
                              }
 
         inserted_data = scenario_list.insert_one(scenario_document)
@@ -100,7 +100,7 @@ def add_task():
 
         if scenario_doc:
             # 시나리오 문서에 작업 추가
-            new_tasks = [{'action': ''}, {'hierarchy': []}]
+            new_tasks = [{'action': "", 'status': "ready"},{'ui_data': "", 'screenshot_url': "", 'status': "ready"}]
             updated_scenario = scenario_list.find_one_and_update(
                 {'_id': ObjectId(object_id)},
                 {'$push': {'scenario': {'$each': new_tasks}}},
@@ -114,6 +114,20 @@ def add_task():
         else:
             return jsonify({'error': 'Scenario not found'}), 404
 
+def transform(ui_list, ui_data):
+    for ui in ui_list:
+        pattern_line_separator = '\n'
+        ui = re.sub(pattern_line_separator, " ", ui)
+
+        # 정규식을 사용하여 문자열을 분리합니다.
+        pattern = r'(.+?) id/no_id/(\d+)'
+        match = re.match(pattern, ui)
+
+        component = match.group(1).strip()  # 앞뒤 공백 제거
+        unique_id = match.group(2)
+
+        ui_data[unique_id] = component
+    print(ui_data)
 
 # 현재 계층 정보 추출 및 DB에 저장
 def extracted_hierarchy(scenario_id):
@@ -139,25 +153,28 @@ def extracted_hierarchy(scenario_id):
 
         ui_data = {}
         # mongodb에 저장
-        for ui in ui_list:
-            pattern_line_separator = '\n'
-            ui = re.sub(pattern_line_separator, " ", ui)
-
-            # 정규식을 사용하여 문자열을 분리합니다.
-            pattern = r'(.+?) id/no_id/(\d+)'
-            match = re.match(pattern, ui)
-
-            component = match.group(1).strip()  # 앞뒤 공백 제거
-            unique_id = match.group(2)
-
-            ui_data[unique_id] = component
-        print(ui_data)
+        transform(ui_list, ui_data)
 
         # MongoDB에서 특정 시나리오의 hierarchy 배열을 업데이트
+        # result = scenario_list.update_one(
+        #     {'_id': ObjectId(object_id), f'scenario.{index}.hierarchy': {'$exists': True}},
+        #     {'$set': {
+        #         f'scenario.{index}.hierarchy': {
+        #             'ui_data': ui_data,  # UI 데이터
+        #             'screenshot_url': screenshot_url,  # 스크린샷 URL
+        #             'status': 'ready'  # 상태
+        #         }
+        #     }}
+        # )
         result = scenario_list.update_one(
-            {'_id': ObjectId(object_id), f'scenario.{index}.hierarchy': {'$exists': True}},
-            {'$push': {f'scenario.{index}.hierarchy': {
-                '$each': [ui_data, {'screenshot_url': screenshot_url}, {'status': 'ready'}]}}}
+            {'_id': ObjectId(object_id), f'scenario.{index}': {'$exists': True}},
+            {'$set': {
+                f'scenario.{index}': {
+                    'ui_data': ui_data,  # UI 데이터
+                    'screenshot_url': screenshot_url,  # 스크린샷 URL
+                    'status': 'ready'  # 상태
+                }
+            }}
         )
 
         return jsonify({
@@ -176,7 +193,10 @@ def save_action(scenario_id):
         # MongoDB에서 특정 시나리오의 특정 인덱스에 action 데이터를 업데이트
         result = scenario_list.update_one(
             {'_id': ObjectId(object_id), f'scenario.{index}': {'$exists': True}},
-            {'$set': {f'scenario.{index}.action': action}}
+            {'$set': {
+                f'scenario.{index}.action': action,
+                f'scenario.{index}.status': 'ready'
+            }}
         )
 
     return jsonify({"message": "success"})
@@ -188,99 +208,128 @@ def execute_function(function_name, *args, **kwargs):
     func = getattr(adb_function, function_name)
     func(*args, **kwargs)
 
+# 실패한 지점부터 이후 지점은 전부 fail로 처리
+def bulk_fail(index, length, scenario_id):
+    scenario_list = app.config['scenario']
+    for i in range(index, length):
+        scenario_list.update_one(
+            {'_id': ObjectId(scenario_id)},
+            {'$set': {f'scenario.{i}.status': 'fail'}}
+        )
+
+def run_result(scenario_list, scenario_id):
+    scenario_list.update_one(
+        {'_id': ObjectId(scenario_id)},
+        {'$set': {'run_status': 'fail'}}
+    )
+
 # 테스트 시나리오 실행
 def run_scenario(scenario_id):
     scenario_list = app.config['scenario']
+    scenario = scenario_list.find_one({'_id': ObjectId(scenario_id)})
     if request.method == 'POST':
 
-        scenario = scenario_list.find_one({'_id': ObjectId(scenario_id)})
-        scenario_seq = scenario['scenario']
+        before_hierarchy = None
+        now_index = 0
+        scenario_seq = scenario['scenario']  # 시나리오 순서 추출(화면-액션-화면-액션...)
+        try:
+            start = scenario_seq[0]
+            start_hierarchy = start['ui_data']
+            start_status = start['status']
+            before_hierarchy = start_hierarchy
 
-        print(scenario_seq)
-
-        # try-catch로 success/fail 처리
-        for i in range(0,len(scenario_seq),3):
-            before = scenario_seq[i]
-            action = scenario_seq[i+1]
-            after = scenario_seq[i+2]
-
-            before_hierarchy = before['hierarchy'][0]
-            action_command = action['action']
-            after_hierarchy = after['hierarchy'][0]
-
-            # 각각 status 인덱스
-            before_index = f'scenario.{i}.hierarchy.2.status'
-            action_index = f'scenario.{i + 1}.action'
-            after_index = f'scenario.{i + 2}.hierarchy.2.status'
-
-            # before은 성공처리
-            scenario_list.update_one(
-                {'_id': ObjectId(scenario_id)},
-                {'$set': {before_index: 'success'}}
-            )
-
-
-            # 아래 부분은 수정해야함
-            result = infer_viewid(before_hierarchy, action_command)
-
-            # text가 없는 경우
-            # 수정: 문자열을 이용해서 다른 클래스의 함수를 실행시키는 방법
-            if len(result) == 2:
-                key, function_name = result
-
-                if function_name == 'back' or function_name == 'home' or 'swipe' in function_name:
-                    execute_function(function_name)
-                else:
-                    execute_function(function_name, key, serial_no) # 문자열로 함수 실행
-
-            # text가 있는 경우
-            elif len(result) == 3:
-                key, text, function_name = result
-                execute_function(function_name, key, text, serial_no)
-
-            # action은 성공처리(코드 작성)
-
-
-            # 새로운 계층 정보를 반환
+            # 현재 화면 추출 및 변환
             vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
             ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)
-
-            # 새로운 계층정보를 before과 비교하기 위해 포매팅함.
             ui_data = {}
-            # mongodb에 저장
-            for ui in ui_list:
-                pattern_line_separator = '\n'
-                ui = re.sub(pattern_line_separator, " ", ui)
+            transform(ui_list, ui_data)
 
-                # 정규식을 사용하여 문자열을 분리합니다.
-                pattern = r'(.+?) id/no_id/(\d+)'
-                match = re.match(pattern, ui)
-
-                component = match.group(1).strip()  # 앞뒤 공백 제거
-                unique_id = match.group(2)
-
-                ui_data[unique_id] = component
-
-            # before과 after을 비교하여 성공/실패 처리
-            if ui_data == after_hierarchy:
+            # 시작화면과 현재 화면이 같은지 비교(홈화면 기준으로 시간이 조금만 달라도 계층정보가 다르다고 판단함)
+            if(start_hierarchy == ui_data):
+                # 시작은 성공
                 scenario_list.update_one(
                     {'_id': ObjectId(scenario_id)},
-                    {'$set': {after_index: 'success'}}
+                    {'$set': {'scenario.0.status': 'success'}}
                 )
-            else: # 실패하면 이후 시나리오 태스크는 진행하지 않고, fail로 처리
-                scenario_list.update_one(
-                    {'_id': ObjectId(scenario_id)},
-                    {'$set': {after_index: 'fail'}}
-                )
+        except:
+            # 첫 화면에서 실패했다면 모든 태스크는 실패 처리
+            bulk_fail(now_index, len(scenario_seq), scenario_id)
+            run_result(scenario_list, scenario_id)
+            return jsonify({'message': 'Not match screen error'}), 404
 
-                # 이후는 모두 실패
+        result = None
+        # 이후 태스크 실행 및 검증
+        for i in range(1, len(scenario_seq)):
+            now_index = i
 
-        # 전체가 성공이면 도큐먼트의 run_status를 success로 변경
+            # 액션 검증
+            if i%2==1:
+                try:
+                    action_cmd = scenario_seq[i]['action']
+                    action_status = scenario_seq[i]['status']
+                    # 문제없이 액션 값을 받아오면 성공
+                    result = infer_viewid(before_hierarchy, action_cmd)
 
-        return jsonify({'message': 'Success'})
+                    scenario_list.update_one(
+                        {'_id': ObjectId(scenario_id)},
+                        {'$set': {f'scenario.{now_index}.status': 'success'}}
+                    )
+                except:
+                    bulk_fail(now_index, len(scenario_seq), scenario_id)
+                    run_result(scenario_list, scenario_id)
+                    return jsonify({'message': 'action error'}), 404
+
+            # 화면 검증(여기서 부터 수정해야 함. abd function쪽 수정과 같이 하기)
+            if i%2==0:
+                try:
+                    after_hierarchy = scenario_seq[i]['ui_data']
+                    after_status = scenario_seq[i]['status']
+
+                    if len(result) == 2:
+                        key, function_name = result
+
+                        if function_name == 'back' or function_name == 'home' or 'swipe' in function_name:
+                            execute_function(function_name)
+                        else:
+                            execute_function(function_name, key, serial_no)  # 문자열로 함수 실행
+
+                    # text가 있는 경우
+                    elif len(result) == 3:
+                        key, text, function_name = result
+                        execute_function(function_name, key, text, serial_no)
 
 
+                    # 새로운 화면에 대한 계층정보 추출 변환
+                    vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
+                    ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)
+                    ui_data = {}
+                    transform(ui_list, ui_data)
 
+                    # 새로운 화면과 계층정보가 동일하면 성공
+                    # 시작화면과 현재 화면이 같은지 비교(홈화면 기준으로 시간이 조금만 달라도 계층정보가 다르다고 판단함)
+                    if (ui_data == after_hierarchy):
+                        scenario_list.update_one(
+                            {'_id': ObjectId(scenario_id)},
+                            {'$set': {f'scenario.{now_index}.status': 'success'}}
+                        )
+
+                        # 그리고 after 정보를 before로 변경
+                        before_hierarchy = after_hierarchy
+                except:
+                    bulk_fail(now_index, len(scenario_seq), scenario_id)
+                    run_result(scenario_list, scenario_id)
+                    return jsonify({'message': 'Not match screen error'}), 404
+
+    scenario_list.update_one(
+        {'_id': ObjectId(scenario_id)},
+        {'$set': {'run_status': 'success'}}
+    )
+    return jsonify({'message': 'Success'})
+
+# 전체 시나리오 실행
+def run_all_scenario():
+
+    return jsonify({'message': 'Success'})
 
 
 
@@ -436,20 +485,3 @@ def start_adb_server():
         print("ADB server started successfully.")
     except subprocess.CalledProcessError as e:
         print("Error:", e)
-
-
-# 스크롤로 전체 화면 계층 정보 수집
-def auto_scroll_and_capture():
-    global serial_no
-    vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
-    view_instance = View(device, serial_no)  # 뷰 인스턴스 생성
-    print(view_instance)
-
-    scrollable = UiScrollable(view_instance)
-    scrollable.setViewClient(vc)
-
-    print(scrollable)
-    res=scrollable.scrollAndCapture()
-    print(res)
-
-    return res
