@@ -168,7 +168,7 @@ class save_action(Resource):
         '''
         return service.save_action(scenario_id)
 
-# 시나리오 실행(수정)(request는 없음, response도 success만)
+# 시나리오 실행
 @e2e.route('/scenarios/<string:scenario_id>/run')
 class run_scenario(Resource):
     @api.response(200, 'Success', run_scenario_response_model)  # 응답 모델 적용
@@ -180,6 +180,15 @@ class run_scenario(Resource):
         return service.run_scenario(scenario_id)
 
 # 전체 시나리오 실행
+@e2e.route('/scenarios')
+class run_all_scenario(Resource):
+    @api.response(200, 'Success', )  # 응답 모델 적용
+    def post(self):
+        '''
+        전체 시나리오 실행
+        :return: 시나리오 실행 결과
+        '''
+        return service.run_all_scenario()
 
 
 @e2e.route('/scroll-test')
