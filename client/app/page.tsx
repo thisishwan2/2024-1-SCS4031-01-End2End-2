@@ -2,14 +2,12 @@
 import { Box, Button, CssBaseline, Dialog, DialogActions, DialogTitle, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Modal, TextField, Toolbar, Typography, styled, useTheme } from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
-import { useEffect, useState } from "react";
+import {  useState } from "react";
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import InboxIcon from '@mui/icons-material/MoveToInbox';
 import MailIcon from '@mui/icons-material/Mail';
 
-
-import * as React from 'react';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -87,6 +85,7 @@ export default function Home() {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
   const {data: scenarioList } = useQuery<{_id:string, scenario_name:string, run_status:string}[]>({queryKey: ['scenarios'], queryFn: async () => {
     const data = await fetch('http://127.0.0.1:5000/e2e/scenarios');
     return data.json();
@@ -107,8 +106,9 @@ export default function Home() {
 
 
   return (
-    <QueryClientProvider client={queryClient}>
+    
 
+    <>
     
     <Box sx={{ display: 'flex', height:"100%" }}>
       <CssBaseline />
@@ -206,7 +206,7 @@ export default function Home() {
       </Main>
     </Box>
     <AddDialog open={isModalOpen} onClose={() => {setIsModalOpen(false)}}/>
-    </QueryClientProvider>
+    </>
   );
 }
 interface DialogProps {
@@ -227,8 +227,8 @@ const AddDialog:React.FC<DialogProps> = ({open, onClose}) => {
   const handleAdd = () => {
     mutate(name,{
       onSuccess:() => {
-        onClose();
         queryClient.invalidateQueries({queryKey: ['scenarios']})
+        onClose();
       }
     })
   }
