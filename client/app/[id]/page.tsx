@@ -8,7 +8,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import InboxIcon from '@mui/icons-material/MoveToInbox';
 import MailIcon from '@mui/icons-material/Mail';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
 import Image from "next/image";
 import { BlockOutlined, CancelOutlined, CheckCircleOutline, CircleOutlined,  } from "@mui/icons-material";
@@ -66,6 +66,7 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 
 export default function Home() {
   const {id} = useParams();
+  const router= useRouter();
   const queryClient= useQueryClient();
   const [shouldPolling, setShouldPolling] = useState(false);
   const {data: scenarioDetail} = useQuery({queryKey: ['scenarios', 'detail', id], queryFn: async ()=> {
@@ -233,6 +234,9 @@ export default function Home() {
             )
           })
          }
+         <Button onClick={()=> {
+          router.push("/")
+         }} >목록으로</Button>
       </Main>
     </Box>
   );
