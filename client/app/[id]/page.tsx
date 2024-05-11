@@ -212,6 +212,7 @@ export default function Home() {
                 }}>
                   시나리오 실행
                 </Button>
+                <StatusIcon status={scenarioDetail?.run_status}/>
               </Box>
               <Box display="flex" gap="40px" alignItems="center" marginBottom="40px">
               {scenarioDetail?.scenario?.map((item,index) => item.ui_data !== undefined 
