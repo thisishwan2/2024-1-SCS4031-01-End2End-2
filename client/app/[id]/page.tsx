@@ -98,7 +98,7 @@ export default function Home() {
   const {mutate: postAction} = useMutation({mutationFn: async ({index,action}: {index: number, action:string}) => {
     return axios.post(`http://127.0.0.1:5000/e2e/scenarios/${id}/action`, {index: String(index), action});
   }});
-  const {mutate:postRun} = useMutation({mutationFn: async () => {
+  const {mutate:postRun, isPending:isRunPending} = useMutation({mutationFn: async () => {
     return axios.post(`http://127.0.0.1:5000/e2e/scenarios/${id}/run`);
   },
   onSuccess: () => {
@@ -209,7 +209,9 @@ export default function Home() {
                 <Button onClick={() =>{
                   postRun();
                   setShouldPolling(true);
-                }}>
+                }}
+                disabled={isRunPending || scenarioDetail?.run_status==="loading"}
+                >
                   시나리오 실행
                 </Button>
                 <StatusIcon status={scenarioDetail?.run_status}/>
@@ -259,7 +261,7 @@ const ActionBox = ({onClick, action, status}: {onClick:(action:string) => void; 
 }
 
 
-const StatusIcon = ({status}: {status?:string}) => {
+export const StatusIcon = ({status}: {status?:string}) => {
   const Icon = ()=> {
     if(status ==="success"){
       return <CheckCircleOutline color="success" />
@@ -274,7 +276,7 @@ const StatusIcon = ({status}: {status?:string}) => {
     return <CircleOutlined color="info" />
   }
 
-  return <Box display="flex" alignItems="center">
+  return <Box display="inline-flex" alignItems="center" >
     status: <Icon />
   </Box>
 }
