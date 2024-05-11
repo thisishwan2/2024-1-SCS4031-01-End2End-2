@@ -388,11 +388,12 @@ def ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq):
 def run_all_scenario():
     scenario_list = app.config['scenario']
     for scenario in scenario_list.find():
-        scenario_id = scenario.get('_id')
+        scenario_id = str(scenario.get('_id'))
         response = run_scenario(scenario_id)
-        print(response)
+        print(response.status_code)
 
-        # 홈으로 이동
+        adb_function.home()
+        adb_function.home()
 
 
     return jsonify({'message': 'Success'})
