@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import axios from "axios";
 import Image from "next/image";
+import { CheckCircleOutline, Circle, CircleOutlined, X } from "@mui/icons-material";
 
 const drawerWidth = 240;
 
@@ -203,12 +204,13 @@ export default function Home() {
               <Box display="flex" gap="40px" alignItems="center" marginBottom="40px">
               {scenarioDetail?.scenario?.map((item,index) => item.ui_data !== undefined 
                ? (<Box key={item.ui_data|| index} bgcolor="lightgray" width="200px" height="300px" display="flex" flexDirection="column" gap="10px">
+                <StatusIcon status={item.status}/>
                 <Button variant="contained" onClick={handlehierarchyButtonClick(index)}>
                   화면정보등록
                   </Button>
                   {(item.screenshot_url) && <Image width={200} height={300} src={item.screenshot_url} alt="화면 이미지"/>}
                 </Box>):
-                <ActionBox key={index} onClick={handleActionButtonClick(index)}/>
+                <ActionBox key={index} status={item.status} onClick={handleActionButtonClick(index)}/>
               )}
               <Button variant="contained" disabled={isPending} onClick={() => {
                   postTask();
@@ -225,16 +227,34 @@ export default function Home() {
   );
 }
 
-const ActionBox = ({onClick, action}: {onClick:(action:string) => void; action?:string;}) => {
+const ActionBox = ({onClick, action, status}: {onClick:(action:string) => void; action?:string;status?:string}) => {
 
   const [actionText, setActionText] = useState('');
   const handleClick = () => {
     onClick(actionText);
   }
   return (<Box bgcolor="lightgray" width="200px" height="300px">
+    <StatusIcon status={status}/>
     <TextField label="액션정보" value={actionText|| action} onChange={(e)=> {
      setActionText(e.target.value);
     }} />
     <Button variant="contained" onClick={handleClick}>등록</Button>
 </Box>)
+}
+
+
+const StatusIcon = ({status}: {status?:string}) => {
+  const Icon = ()=> {
+    if(status ==="success"){
+      return <CheckCircleOutline color="success" />
+    }else if (status ==="fail"){
+      return <X color="error" />
+    }
+    
+    return <CircleOutlined color="info" />
+  }
+
+  return <Box display="flex">
+    status: <Icon />
+  </Box>
 }
