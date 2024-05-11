@@ -25,13 +25,13 @@ from server import app
 #Parse XML
 tree = elemTree.parse('keys.xml')
 
-openai.api_key = tree.find('string[@name="OPEN_API_KEY"]').text
+openai.api_key = os.environ.get('OPENAI_API_KEY')
 AWS_ACCESS_KEY = tree.find('string[@name="AWS_ACCESS_KEY"]').text
 AWS_SECRET_KEY = tree.find('string[@name="AWS_SECRET_KEY"]').text
 BUCKET_NAME = tree.find('string[@name="BUCKET_NAME"]').text
 location = 'ap-northeast-2'
 
-client = OpenAI(api_key=openai.api_key)
+client = openai.OpenAI(api_key=openai.api_key)
 
 # 시리얼 번호
 serial_no = None
@@ -246,120 +246,119 @@ def run_scenario(scenario_id):
     scenario_list = app.config['scenario']
     scenario = scenario_list.find_one({'_id': ObjectId(scenario_id)})
 
-    if request.method == 'POST':
-        before_hierarchy = None
-        now_index = 0
-        scenario_seq = scenario['scenario']  # 시나리오 순서 추출(화면-액션-화면-액션...)
+    before_hierarchy = None
+    now_index = 0
+    scenario_seq = scenario['scenario']  # 시나리오 순서 추출(화면-액션-화면-액션...)
 
-        # 전체 status 로딩으로 처리
+    # 전체 status 로딩으로 처리
+    scenario_list.update_one(
+        {'_id': ObjectId(scenario_id)},
+        {'$set': {'run_status': 'loading'}}
+    )
+
+    # 모든 태스크를 로딩으로 처리
+    for i in range(len(scenario_seq)):
         scenario_list.update_one(
             {'_id': ObjectId(scenario_id)},
-            {'$set': {'run_status': 'loading'}}
+            {'$set': {f'scenario.{i}.status': 'ready'}}
         )
 
-        # 모든 태스크를 로딩으로 처리
-        for i in range(len(scenario_seq)):
+    try:
+        start = scenario_seq[0]
+        start_hierarchy = start['ui_data']
+        start_status = start['status']
+        before_hierarchy = start_hierarchy
+
+        # loading 처리
+        scenario_list.update_one(
+            {'_id': ObjectId(scenario_id)},
+            {'$set': {'scenario.0.status': 'loading'}}
+        )
+
+        # 현재 화면 추출 및 변환
+        vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
+        ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)
+        ui_data = {}
+        transform(ui_list, ui_data)
+        # 시작화면과 현재 화면이 같은지 비교(홈화면 기준으로 시간이 조금만 달라도 계층정보가 다르다고 판단함)
+        if(ui_compare(ui_data, before_hierarchy)):
+            # 시작은 성공
             scenario_list.update_one(
                 {'_id': ObjectId(scenario_id)},
-                {'$set': {f'scenario.{i}.status': 'ready'}}
+                {'$set': {'scenario.0.status': 'success'}}
             )
 
-        try:
-            start = scenario_seq[0]
-            start_hierarchy = start['ui_data']
-            start_status = start['status']
-            before_hierarchy = start_hierarchy
-
-            # loading 처리
-            scenario_list.update_one(
-                {'_id': ObjectId(scenario_id)},
-                {'$set': {'scenario.0.status': 'loading'}}
-            )
-
-            # 현재 화면 추출 및 변환
-            vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
-            ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)
-            ui_data = {}
-            transform(ui_list, ui_data)
-            # 시작화면과 현재 화면이 같은지 비교(홈화면 기준으로 시간이 조금만 달라도 계층정보가 다르다고 판단함)
-            if(ui_compare(ui_data, before_hierarchy)):
-                # 시작은 성공
-                scenario_list.update_one(
-                    {'_id': ObjectId(scenario_id)},
-                    {'$set': {'scenario.0.status': 'success'}}
-                )
-
-            else: # 다른화면인 경우
-                ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
-                return error_response()
-        except Exception as e:
-            # 첫 화면에서 실패했다면 모든 태스크는 실패 처리
+        else: # 다른화면인 경우
             ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
             return error_response()
-        result = None
-        # 이후 태스크 실행 및 검증
-        for index in range(1, len(scenario_seq)):
-            # loading 처리
-            scenario_list.update_one(
-                {'_id': ObjectId(scenario_id)},
-                {'$set': {f'scenario.{index}.status': 'loading'}}
-            )
+    except Exception as e:
+        # 첫 화면에서 실패했다면 모든 태스크는 실패 처리
+        ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
+        return error_response()
+    result = None
+    # 이후 태스크 실행 및 검증
+    for index in range(1, len(scenario_seq)):
+        # loading 처리
+        scenario_list.update_one(
+            {'_id': ObjectId(scenario_id)},
+            {'$set': {f'scenario.{index}.status': 'loading'}}
+        )
 
-            # 액션 검증
-            if index%2==1:
-                try:
-                    action_cmd = scenario_seq[index]['action']
-                    # action_status = scenario_seq[i]['status']
-                    # 문제없이 액션 값을 받아오면 성공
-                    result = infer_viewid(before_hierarchy, action_cmd)
+        # 액션 검증
+        if index%2==1:
+            try:
+                action_cmd = scenario_seq[index]['action']
+                # action_status = scenario_seq[i]['status']
+                # 문제없이 액션 값을 받아오면 성공
+                result = infer_viewid(before_hierarchy, action_cmd)
 
+                scenario_list.update_one(
+                    {'_id': ObjectId(scenario_id)},
+                    {'$set': {f'scenario.{index}.status': 'success'}}
+                )
+            except:
+                ui_compare_fail(index, scenario_id, scenario_list, scenario_seq)
+                return error_response()
+
+        # 화면 검증(여기서 부터 수정해야 함. abd function쪽 수정과 같이 하기)
+        elif index%2==0:
+            try:
+                after_hierarchy = scenario_seq[index]['ui_data']
+
+                # adb 함수 수행
+                if len(result) == 2:
+                    key, function_name = result
+
+                    if function_name == 'back' or function_name == 'home' or 'swipe' in function_name:
+                        execute_function(function_name)
+                    else:
+                        execute_function(function_name, key, serial_no)  # 문자열로 함수 실행
+
+                # 새로운 화면에 대한 계층정보 추출 변환
+                vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
+                vc.dump(window='-1', sleep=1)  # 현재 화면을 강제로 새로 고침
+                ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)
+
+
+                ui = {}
+                transform(ui_list, ui)
+                before_hierarchy = after_hierarchy
+
+                # 새로운 화면과 계층정보가 동일하면 성공
+                # 시작화면과 현재 화면이 같은지 비교(홈화면 기준으로 시간이 조금만 달라도 계층정보가 다르다고 판단함)
+                if (ui_compare(ui, after_hierarchy)):
                     scenario_list.update_one(
                         {'_id': ObjectId(scenario_id)},
                         {'$set': {f'scenario.{index}.status': 'success'}}
                     )
-                except:
+
+                else:
                     ui_compare_fail(index, scenario_id, scenario_list, scenario_seq)
                     return error_response()
 
-            # 화면 검증(여기서 부터 수정해야 함. abd function쪽 수정과 같이 하기)
-            elif index%2==0:
-                try:
-                    after_hierarchy = scenario_seq[index]['ui_data']
-
-                    # adb 함수 수행
-                    if len(result) == 2:
-                        key, function_name = result
-
-                        if function_name == 'back' or function_name == 'home' or 'swipe' in function_name:
-                            execute_function(function_name)
-                        else:
-                            execute_function(function_name, key, serial_no)  # 문자열로 함수 실행
-
-                    # 새로운 화면에 대한 계층정보 추출 변환
-                    vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
-                    vc.dump(window='-1', sleep=1)  # 현재 화면을 강제로 새로 고침
-                    ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)
-
-
-                    ui = {}
-                    transform(ui_list, ui)
-                    before_hierarchy = after_hierarchy
-
-                    # 새로운 화면과 계층정보가 동일하면 성공
-                    # 시작화면과 현재 화면이 같은지 비교(홈화면 기준으로 시간이 조금만 달라도 계층정보가 다르다고 판단함)
-                    if (ui_compare(ui, after_hierarchy)):
-                        scenario_list.update_one(
-                            {'_id': ObjectId(scenario_id)},
-                            {'$set': {f'scenario.{index}.status': 'success'}}
-                        )
-
-                    else:
-                        ui_compare_fail(index, scenario_id, scenario_list, scenario_seq)
-                        return error_response()
-
-                except:
-                    ui_compare_fail(index, scenario_id, scenario_list, scenario_seq)
-                    return error_response()
+            except:
+                ui_compare_fail(index, scenario_id, scenario_list, scenario_seq)
+                return error_response()
 
     scenario_list.update_one(
         {'_id': ObjectId(scenario_id)},
@@ -387,6 +386,14 @@ def ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq):
 
 # 전체 시나리오 실행
 def run_all_scenario():
+    scenario_list = app.config['scenario']
+    for scenario in scenario_list.find():
+        scenario_id = scenario.get('_id')
+        response = run_scenario(scenario_id)
+        print(response)
+
+        # 홈으로 이동
+
 
     return jsonify({'message': 'Success'})
 
