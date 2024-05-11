@@ -8,7 +8,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import InboxIcon from '@mui/icons-material/MoveToInbox';
 import MailIcon from '@mui/icons-material/Mail';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
 import Image from "next/image";
 import { BlockOutlined, CancelOutlined, CheckCircleOutline, CircleOutlined,  } from "@mui/icons-material";
@@ -66,6 +66,7 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 
 export default function Home() {
   const {id} = useParams();
+  const router= useRouter();
   const queryClient= useQueryClient();
   const [shouldPolling, setShouldPolling] = useState(false);
   const {data: scenarioDetail} = useQuery({queryKey: ['scenarios', 'detail', id], queryFn: async ()=> {
@@ -211,6 +212,7 @@ export default function Home() {
                 }}>
                   시나리오 실행
                 </Button>
+                <StatusIcon status={scenarioDetail?.run_status}/>
               </Box>
               <Box display="flex" gap="40px" alignItems="center" marginBottom="40px">
               {scenarioDetail?.scenario?.map((item,index) => item.ui_data !== undefined 
@@ -221,7 +223,7 @@ export default function Home() {
                   </Button>
                   {(item.screenshot_url) && <Image width={200} height={300} src={item.screenshot_url} alt="화면 이미지"/>}
                 </Box>):
-                <ActionBox key={index} status={item.status} onClick={handleActionButtonClick(index)}/>
+                <ActionBox key={index} action={item.action} status={item.status} onClick={handleActionButtonClick(index)}/>
               )}
               <Button variant="contained" disabled={isPending} onClick={() => {
                   postTask();
@@ -233,6 +235,9 @@ export default function Home() {
             )
           })
          }
+         <Button onClick={()=> {
+          router.push("/")
+         }} >목록으로</Button>
       </Main>
     </Box>
   );
