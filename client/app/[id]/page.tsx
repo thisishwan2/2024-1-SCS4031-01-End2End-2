@@ -2,7 +2,7 @@
 import { Box, Button, CssBaseline, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, TextField, Toolbar, Typography, styled, useTheme } from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import InboxIcon from '@mui/icons-material/MoveToInbox';
@@ -197,9 +197,11 @@ export default function Home() {
                   </Button>
                   {(item.screenshot_url) && <Image width={200} height={300} src={item.screenshot_url} alt="화면 이미지"/>}
                 </Box>):
-                (<Box key={item.action||index} bgcolor="lightgray" width="200px" height="300px"><TextField label="액션정보" value={actionText} onChange={(e)=> {
+                (<Box key={item.action||index} bgcolor="lightgray" width="200px" height="300px">
+                  <TextField label="액션정보" value={actionText|| item.action} onChange={(e)=> {
                 setActionText(e.target.value);
-              }} /><Button variant="contained" onClick={handleActionButtonClick(index)}>등록</Button></Box>))}
+              }} />
+              <Button variant="contained" onClick={handleActionButtonClick(index)}>등록</Button></Box>))}
               <Button variant="contained" onClick={() => {
                 const newScenario = scenario.map(sc => {
                   if(sc.id === item.id) {
