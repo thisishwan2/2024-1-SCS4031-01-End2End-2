@@ -15,7 +15,7 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
-import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { StatusIcon } from "./[id]/page";
@@ -76,15 +76,22 @@ export default function Home() {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+  const queryClient = useQueryClient();
   const {data: scenarioList } = useQuery<{_id:string, scenario_name:string, run_status:string}[]>({queryKey: ['scenarios'], queryFn: async () => {
     const data = await fetch('http://127.0.0.1:5000/e2e/scenarios');
     return data.json();
-  }})
+  }, 
+  refetchInterval: 10000
+
+})
 
   const {mutate:postRunAll, isPending:isRunPending} = useMutation({mutationFn: async () => {
     return axios.post(`http://127.0.0.1:5000/e2e/scenarios/run-all`);
-  }},);
+  },
+  onSuccess:() => {
+    queryClient.invalidateQueries({queryKey: ['scenarios']})
+  }
+},);
 
 
 
