@@ -1,5 +1,5 @@
 'use client'
-import { Box, Button, CssBaseline, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, TextField, Toolbar, Typography, styled, useTheme } from "@mui/material";
+import { Box, Button, CircularProgress, CssBaseline, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, TextField, Toolbar, Typography, styled, useTheme } from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import { useEffect, useState } from "react";
@@ -11,7 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import axios from "axios";
 import Image from "next/image";
-import { CancelOutlined, CheckCircleOutline, CircleOutlined,  } from "@mui/icons-material";
+import { BlockOutlined, CancelOutlined, CheckCircleOutline, CircleOutlined,  } from "@mui/icons-material";
 
 const drawerWidth = 240;
 
@@ -249,12 +249,22 @@ const StatusIcon = ({status}: {status?:string}) => {
       return <CheckCircleOutline color="success" />
     }else if (status ==="fail"){
       return <CancelOutlined color="error" />
+    } else if (status ==="loading"){
+      return <Loading />
+    } else if(status ==="cancel") {
+      return <BlockOutlined color="disabled" />
     }
     
     return <CircleOutlined color="info" />
   }
 
-  return <Box display="flex">
+  return <Box display="flex" alignItems="center">
     status: <Icon />
   </Box>
 }
+
+const Loading = () => {
+  return (
+      <CircularProgress color="info" size={20} />
+  );
+};
