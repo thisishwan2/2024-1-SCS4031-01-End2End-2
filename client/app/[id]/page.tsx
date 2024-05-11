@@ -11,7 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import axios from "axios";
 import Image from "next/image";
-import { CheckCircleOutline, Circle, CircleOutlined, X } from "@mui/icons-material";
+import { CancelOutlined, CheckCircleOutline, CircleOutlined,  } from "@mui/icons-material";
 
 const drawerWidth = 240;
 
@@ -248,7 +248,7 @@ const StatusIcon = ({status}: {status?:string}) => {
     if(status ==="success"){
       return <CheckCircleOutline color="success" />
     }else if (status ==="fail"){
-      return <X color="error" />
+      return <CancelOutlined color="error" />
     }
     
     return <CircleOutlined color="info" />
