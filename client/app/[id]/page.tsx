@@ -67,7 +67,7 @@ export default function Home() {
   const [actionText, setActionText] = useState('');
   const {id} = useParams();
   const queryClient= useQueryClient();
-  const {data: scenarioDetail} = useQuery({queryKey: ['scenario', 'detail', id], queryFn: async ()=> {
+  const {data: scenarioDetail} = useQuery({queryKey: ['scenarios', 'detail', id], queryFn: async ()=> {
     const response =  await axios.get<{
       _id: string;
       run_status: string;
@@ -86,6 +86,10 @@ export default function Home() {
   const {mutate:postRun} = useMutation({mutationFn: async () => {
     return axios.post(`http://127.0.0.1:5000/e2e/scenarios/${id}/run`);
   },});
+
+  const {mutate: postTask, isPending} = useMutation({ mutationFn: () => axios.post(`http://127.0.0.1:5000/e2e/scenarios/tasks`,{ object_id: id}), onSuccess:()=> {
+    queryClient.invalidateQueries({queryKey: ['scenarios']});
+  } })
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const [scenario, setScenario] = useState([
@@ -106,13 +110,13 @@ export default function Home() {
 
   const handlehierarchyButtonClick = (index: number) => () => {
     posthierarchy({index}, {onSuccess:()=> {
-      queryClient.invalidateQueries({queryKey: ['scenario', 'detail', id]})
+      queryClient.invalidateQueries({queryKey: ['scenarios', 'detail', id]})
     }});
   }
 
   const handleActionButtonClick = (index: number) => () => {
     postAction({index,action:actionText}, {onSuccess:()=> {
-      queryClient.invalidateQueries({queryKey: ['scenario', 'detail', id]})
+      queryClient.invalidateQueries({queryKey: ['scenarios', 'detail', id]})
     }});
   }
 
@@ -199,25 +203,12 @@ export default function Home() {
                 </Box>):
                 (<Box key={item.action||index} bgcolor="lightgray" width="200px" height="300px">
                   <TextField label="액션정보" value={actionText|| item.action} onChange={(e)=> {
-                setActionText(e.target.value);
-              }} />
-              <Button variant="contained" onClick={handleActionButtonClick(index)}>등록</Button></Box>))}
-              <Button variant="contained" onClick={() => {
-                const newScenario = scenario.map(sc => {
-                  if(sc.id === item.id) {
-                    return {
-                      ...sc,
-                      list: [...sc.list, {
-                        id: sc.list.length + 1,
-                        old: '',
-                        action: '',
-                        new: ''
-                      }]
-                    }
-                  }
-                  return sc
-                })
-                setScenario(newScenario as any)
+                  setActionText(e.target.value);
+                }} />
+                <Button variant="contained" onClick={handleActionButtonClick(index)}>등록</Button>
+              </Box>))}
+              <Button variant="contained" disabled={isPending} onClick={() => {
+                  postTask();
               }}>추가</Button>   
             </Box>
               </>
