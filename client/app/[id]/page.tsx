@@ -221,7 +221,7 @@ export default function Home() {
                   </Button>
                   {(item.screenshot_url) && <Image width={200} height={300} src={item.screenshot_url} alt="화면 이미지"/>}
                 </Box>):
-                <ActionBox key={index} status={item.status} onClick={handleActionButtonClick(index)}/>
+                <ActionBox key={index} action={item.action} status={item.status} onClick={handleActionButtonClick(index)}/>
               )}
               <Button variant="contained" disabled={isPending} onClick={() => {
                   postTask();
