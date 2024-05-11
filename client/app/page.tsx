@@ -18,16 +18,6 @@ import Paper from '@mui/material/Paper';
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-const queryClient = new QueryClient();
-function createData(
-  name: string,
-  calories: number,
-  fat: number,
-  carbs: number,
-  protein: number,
-) {
-  return { name, calories, fat, carbs, protein };
-}
 
 const drawerWidth = 240;
 

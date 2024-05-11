@@ -69,16 +69,26 @@ export default function Home() {
   const queryClient= useQueryClient();
   const [shouldPolling, setShouldPolling] = useState(false);
   const {data: scenarioDetail} = useQuery({queryKey: ['scenarios', 'detail', id], queryFn: async ()=> {
-    const response =  await axios.get<{
-      _id: string;
-      run_status: string;
-      scenario_name: string;
-      scenario: {screenshot_url?:string; ui_data?: string; status?:string; action?:string}[]
-    }>(`http://127.0.0.1:5000/e2e/scenarios/${id}`);
-    return response.data;
-  },
-  refetchInterval: 2000
-})
+      const response =  await axios.get<{
+          _id: string;
+          run_status: string;
+          scenario_name: string;
+          scenario: {screenshot_url?:string; ui_data?: string; status?:string; action?:string}[]
+      }>(`http://127.0.0.1:5000/e2e/scenarios/${id}`);
+      return response.data;
+    },  
+    refetchInterval: shouldPolling ? 1000 : undefined
+  })
+
+  useEffect(() => {
+    if(scenarioDetail) {
+      if(scenarioDetail.run_status === "loading"){
+        setShouldPolling(true);
+      } else {
+        setShouldPolling(false);
+      }
+    }
+  },[scenarioDetail])
 
 
   const {mutate: posthierarchy} = useMutation({mutationFn: async ({index}: {index: number}) => {
@@ -91,7 +101,7 @@ export default function Home() {
     return axios.post(`http://127.0.0.1:5000/e2e/scenarios/${id}/run`);
   },
   onSuccess: () => {
-    setShouldPolling(true);
+    queryClient.invalidateQueries({queryKey: ['scenarios']});
   }
 });
 
