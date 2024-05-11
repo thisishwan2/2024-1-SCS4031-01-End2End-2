@@ -179,7 +179,7 @@ export default function Home() {
           scenario.map(item => {
             return (
               <>
-              <Box display="flex" gap="20px" alignItems="center" marginBottom="15px">
+              <Box key={item.id} display="flex" gap="20px" alignItems="center" marginBottom="15px">
                 <Typography paragraph margin="0">
                   {item.title}
                 </Typography>
@@ -191,11 +191,11 @@ export default function Home() {
               </Box>
               <Box display="flex" gap="40px" alignItems="center" marginBottom="40px">
               {scenarioDetail?.scenario?.map((item,index) => item.ui_data !== undefined 
-               ? (<Box key={item.ui_data|| index} bgcolor="lightgray" width="200px" height="300px">
+               ? (<Box key={item.ui_data|| index} bgcolor="lightgray" width="200px" height="300px" display="flex" flexDirection="column" gap="10px">
                 <Button variant="contained" onClick={handlehierarchyButtonClick(index)}>
                   화면정보등록
                   </Button>
-                  {item.screenshot_url && <Image src={item.screenshot_url} alt="화면 이미지"/>}
+                  {(item.screenshot_url) && <Image width={200} height={300} src={item.screenshot_url} alt="화면 이미지"/>}
                 </Box>):
                 (<Box key={item.action||index} bgcolor="lightgray" width="200px" height="300px"><TextField label="액션정보" value={actionText} onChange={(e)=> {
                 setActionText(e.target.value);
