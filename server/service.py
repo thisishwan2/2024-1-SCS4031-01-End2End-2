@@ -11,7 +11,7 @@ from bson.objectid import ObjectId
 from pymongo import ASCENDING, ReturnDocument
 
 from com.dtmilano.android.viewclient import ViewClient, ListView, View, UiScrollable
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from ppadb.client import Client as AdbClient
 import xml.etree.ElementTree as elemTree
 import boto3
@@ -36,6 +36,17 @@ client = OpenAI(api_key=openai.api_key)
 # 시리얼 번호
 serial_no = None
 device = None
+
+def error_response():
+    response = make_response(
+        jsonify(
+            {"message": "error"}
+        ),
+        400,
+    )
+    response.headers["Content-Type"] = "application/json"
+    return response
+
 
 # 시나리오 리스트 조회
 def scenarios():
@@ -127,7 +138,7 @@ def transform(ui_list, ui_data):
         unique_id = match.group(2)
 
         ui_data[unique_id] = component
-    print(ui_data)
+    # print(ui_data)
 
 # 현재 계층 정보 추출 및 DB에 저장
 def extracted_hierarchy(scenario_id):
@@ -212,7 +223,13 @@ def execute_function(function_name, *args, **kwargs):
 # 실패한 지점부터 이후 지점은 전부 fail로 처리
 def bulk_fail(index, length, scenario_id):
     scenario_list = app.config['scenario']
-    for i in range(index, length):
+    # 현재 지점은 fail
+    scenario_list.update_one(
+        {'_id': ObjectId(scenario_id)},
+        {'$set': {f'scenario.{index}.status': 'fail'}}
+    )
+
+    for i in range(index+1, length):
         scenario_list.update_one(
             {'_id': ObjectId(scenario_id)},
             {'$set': {f'scenario.{i}.status': 'cancel'}}
@@ -228,6 +245,7 @@ def run_result(scenario_list, scenario_id):
 def run_scenario(scenario_id):
     scenario_list = app.config['scenario']
     scenario = scenario_list.find_one({'_id': ObjectId(scenario_id)})
+
     if request.method == 'POST':
         before_hierarchy = None
         now_index = 0
@@ -273,44 +291,42 @@ def run_scenario(scenario_id):
 
             else: # 다른화면인 경우
                 ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
-                return jsonify({'message': 'Scenario not found'}), 404
+                return error_response()
         except Exception as e:
             # 첫 화면에서 실패했다면 모든 태스크는 실패 처리
             ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
-            return jsonify({'message': 'Error retrieving scenario', 'details': str(e)}), 500
+            return error_response()
         result = None
         # 이후 태스크 실행 및 검증
-        for i in range(1, len(scenario_seq)):
-            now_index = i
-
+        for index in range(1, len(scenario_seq)):
             # loading 처리
             scenario_list.update_one(
                 {'_id': ObjectId(scenario_id)},
-                {'$set': {f'scenario.{now_index}.status': 'loading'}}
+                {'$set': {f'scenario.{index}.status': 'loading'}}
             )
 
             # 액션 검증
-            if i%2==1:
+            if index%2==1:
                 try:
-                    action_cmd = scenario_seq[i]['action']
-                    action_status = scenario_seq[i]['status']
+                    action_cmd = scenario_seq[index]['action']
+                    # action_status = scenario_seq[i]['status']
                     # 문제없이 액션 값을 받아오면 성공
                     result = infer_viewid(before_hierarchy, action_cmd)
 
                     scenario_list.update_one(
                         {'_id': ObjectId(scenario_id)},
-                        {'$set': {f'scenario.{now_index}.status': 'success'}}
+                        {'$set': {f'scenario.{index}.status': 'success'}}
                     )
                 except:
-                    ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
-                    return jsonify({'message': 'Invalid scenario ID format'}), 400
+                    ui_compare_fail(index, scenario_id, scenario_list, scenario_seq)
+                    return error_response()
 
             # 화면 검증(여기서 부터 수정해야 함. abd function쪽 수정과 같이 하기)
-            if i%2==0:
+            elif index%2==0:
                 try:
-                    after_hierarchy = scenario_seq[i]['ui_data']
-                    after_status = scenario_seq[i]['status']
+                    after_hierarchy = scenario_seq[index]['ui_data']
 
+                    # adb 함수 수행
                     if len(result) == 2:
                         key, function_name = result
 
@@ -319,40 +335,38 @@ def run_scenario(scenario_id):
                         else:
                             execute_function(function_name, key, serial_no)  # 문자열로 함수 실행
 
-                    # text가 있는 경우
-                    elif len(result) == 3:
-                        key, text, function_name = result
-                        execute_function(function_name, key, text, serial_no)
-
-
                     # 새로운 화면에 대한 계층정보 추출 변환
                     vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
+                    vc.dump(window='-1', sleep=1)  # 현재 화면을 강제로 새로 고침
                     ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)
-                    ui_data = {}
-                    transform(ui_list, ui_data)
+
+
+                    ui = {}
+                    transform(ui_list, ui)
+                    before_hierarchy = after_hierarchy
 
                     # 새로운 화면과 계층정보가 동일하면 성공
                     # 시작화면과 현재 화면이 같은지 비교(홈화면 기준으로 시간이 조금만 달라도 계층정보가 다르다고 판단함)
-                    if (ui_compare(ui_data, after_hierarchy)):
+                    if (ui_compare(ui, after_hierarchy)):
                         scenario_list.update_one(
                             {'_id': ObjectId(scenario_id)},
-                            {'$set': {f'scenario.{now_index}.status': 'success'}}
+                            {'$set': {f'scenario.{index}.status': 'success'}}
                         )
 
-                        # 그리고 after 정보를 before로 변경
-                        before_hierarchy = after_hierarchy
                     else:
-                        ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
-                        return jsonify({'message': 'Invalid scenario ID format'}), 400
+                        ui_compare_fail(index, scenario_id, scenario_list, scenario_seq)
+                        return error_response()
+
                 except:
-                    ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
-                    return jsonify({'message': 'Invalid scenario ID format'}), 400
+                    ui_compare_fail(index, scenario_id, scenario_list, scenario_seq)
+                    return error_response()
 
     scenario_list.update_one(
         {'_id': ObjectId(scenario_id)},
         {'$set': {'run_status': 'success'}}
     )
     return jsonify({'message': 'Success'})
+
 
 # 화면 비교
 def ui_compare(ui_data, hierarchy):
@@ -388,7 +402,6 @@ def infer_viewid(hierarchy, action):
     '''
     # 계층정보를 문자열로 변환
     hierarchy_info = json.dumps(hierarchy, indent=4, ensure_ascii=False)  # 보기 좋게 포맷팅
-    print(hierarchy_info)
 
     msg = "ui: \n" + hierarchy_info + "\naction: " + action
 
