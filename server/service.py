@@ -136,6 +136,7 @@ def extracted_hierarchy(scenario_id):
     scenario_list = app.config['scenario']
 
     if request.method == 'POST':
+        print("extracted_hierarchy")
 
         object_id = scenario_id
         index = int(request.json['index'])
@@ -228,7 +229,6 @@ def run_scenario(scenario_id):
     scenario_list = app.config['scenario']
     scenario = scenario_list.find_one({'_id': ObjectId(scenario_id)})
     if request.method == 'POST':
-
         before_hierarchy = None
         now_index = 0
         scenario_seq = scenario['scenario']  # 시나리오 순서 추출(화면-액션-화면-액션...)
@@ -237,25 +237,26 @@ def run_scenario(scenario_id):
             start_hierarchy = start['ui_data']
             start_status = start['status']
             before_hierarchy = start_hierarchy
-
             # 현재 화면 추출 및 변환
             vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
             ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)
             ui_data = {}
             transform(ui_list, ui_data)
-
             # 시작화면과 현재 화면이 같은지 비교(홈화면 기준으로 시간이 조금만 달라도 계층정보가 다르다고 판단함)
-            if(start_hierarchy == ui_data):
+            if(ui_compare):
                 # 시작은 성공
                 scenario_list.update_one(
                     {'_id': ObjectId(scenario_id)},
                     {'$set': {'scenario.0.status': 'success'}}
                 )
+
+            else: # 다른화면인 경우
+                ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
+                return jsonify({'message': 'Not match screen error'})
         except:
             # 첫 화면에서 실패했다면 모든 태스크는 실패 처리
-            bulk_fail(now_index, len(scenario_seq), scenario_id)
-            run_result(scenario_list, scenario_id)
-            return jsonify({'message': 'Not match screen error'}), 404
+            ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
+            return jsonify({'message': 'Not match screen error'})
 
         result = None
         # 이후 태스크 실행 및 검증
@@ -275,9 +276,8 @@ def run_scenario(scenario_id):
                         {'$set': {f'scenario.{now_index}.status': 'success'}}
                     )
                 except:
-                    bulk_fail(now_index, len(scenario_seq), scenario_id)
-                    run_result(scenario_list, scenario_id)
-                    return jsonify({'message': 'action error'}), 404
+                    ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
+                    return jsonify({'message': 'action error'})
 
             # 화면 검증(여기서 부터 수정해야 함. abd function쪽 수정과 같이 하기)
             if i%2==0:
@@ -307,7 +307,7 @@ def run_scenario(scenario_id):
 
                     # 새로운 화면과 계층정보가 동일하면 성공
                     # 시작화면과 현재 화면이 같은지 비교(홈화면 기준으로 시간이 조금만 달라도 계층정보가 다르다고 판단함)
-                    if (ui_data == after_hierarchy):
+                    if (ui_compare):
                         scenario_list.update_one(
                             {'_id': ObjectId(scenario_id)},
                             {'$set': {f'scenario.{now_index}.status': 'success'}}
@@ -315,16 +315,35 @@ def run_scenario(scenario_id):
 
                         # 그리고 after 정보를 before로 변경
                         before_hierarchy = after_hierarchy
+                    else:
+                        ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
+                        return jsonify({'message': 'Not match screen error'})
                 except:
-                    bulk_fail(now_index, len(scenario_seq), scenario_id)
-                    run_result(scenario_list, scenario_id)
-                    return jsonify({'message': 'Not match screen error'}), 404
+                    ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
+                    return jsonify({'message': 'Not match screen error'})
 
     scenario_list.update_one(
         {'_id': ObjectId(scenario_id)},
         {'$set': {'run_status': 'success'}}
     )
     return jsonify({'message': 'Success'})
+
+# 화면 비교
+def ui_compare(ui_data, hierarchy):
+    for ui_key in ui_data.keys():
+        screen = ui_data[ui_key].split(" ")[0]
+        hierarchy_screen = hierarchy[ui_key].split(" ")[0]
+
+        if screen != hierarchy_screen:
+            return False
+    return True
+
+
+# 화면 비교시 실패한 경우 처리하는 로직 정의 함수
+def ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq):
+    bulk_fail(now_index, len(scenario_seq), scenario_id)
+    run_result(scenario_list, scenario_id)
+
 
 # 전체 시나리오 실행
 def run_all_scenario():
