@@ -273,7 +273,7 @@ export const StatusIcon = ({status}: {status?:string}) => {
       return <BlockOutlined color="disabled" />
     }
     
-    return <CircleOutlined color="info" />
+    return <CircleOutlined color="disabled" />
   }
 
   return <Box display="inline-flex" alignItems="center" >
