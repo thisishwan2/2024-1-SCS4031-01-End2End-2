@@ -215,7 +215,7 @@ def bulk_fail(index, length, scenario_id):
     for i in range(index, length):
         scenario_list.update_one(
             {'_id': ObjectId(scenario_id)},
-            {'$set': {f'scenario.{i}.status': 'fail'}}
+            {'$set': {f'scenario.{i}.status': 'cancel'}}
         )
 
 def run_result(scenario_list, scenario_id):
@@ -232,18 +232,39 @@ def run_scenario(scenario_id):
         before_hierarchy = None
         now_index = 0
         scenario_seq = scenario['scenario']  # 시나리오 순서 추출(화면-액션-화면-액션...)
+
+        # 전체 status 로딩으로 처리
+        scenario_list.update_one(
+            {'_id': ObjectId(scenario_id)},
+            {'$set': {'run_status': 'loading'}}
+        )
+
+        # 모든 태스크를 로딩으로 처리
+        for i in range(len(scenario_seq)):
+            scenario_list.update_one(
+                {'_id': ObjectId(scenario_id)},
+                {'$set': {f'scenario.{i}.status': 'ready'}}
+            )
+
         try:
             start = scenario_seq[0]
             start_hierarchy = start['ui_data']
             start_status = start['status']
             before_hierarchy = start_hierarchy
+
+            # loading 처리
+            scenario_list.update_one(
+                {'_id': ObjectId(scenario_id)},
+                {'$set': {'scenario.0.status': 'loading'}}
+            )
+
             # 현재 화면 추출 및 변환
             vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
             ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)
             ui_data = {}
             transform(ui_list, ui_data)
             # 시작화면과 현재 화면이 같은지 비교(홈화면 기준으로 시간이 조금만 달라도 계층정보가 다르다고 판단함)
-            if(ui_compare):
+            if(ui_compare(ui_data, before_hierarchy)):
                 # 시작은 성공
                 scenario_list.update_one(
                     {'_id': ObjectId(scenario_id)},
@@ -252,16 +273,21 @@ def run_scenario(scenario_id):
 
             else: # 다른화면인 경우
                 ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
-                return jsonify({'message': 'Not match screen error'})
-        except:
+                return jsonify({'message': 'Scenario not found'}), 404
+        except Exception as e:
             # 첫 화면에서 실패했다면 모든 태스크는 실패 처리
             ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
-            return jsonify({'message': 'Not match screen error'})
-
+            return jsonify({'message': 'Error retrieving scenario', 'details': str(e)}), 500
         result = None
         # 이후 태스크 실행 및 검증
         for i in range(1, len(scenario_seq)):
             now_index = i
+
+            # loading 처리
+            scenario_list.update_one(
+                {'_id': ObjectId(scenario_id)},
+                {'$set': {f'scenario.{now_index}.status': 'loading'}}
+            )
 
             # 액션 검증
             if i%2==1:
@@ -277,7 +303,7 @@ def run_scenario(scenario_id):
                     )
                 except:
                     ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
-                    return jsonify({'message': 'action error'})
+                    return jsonify({'message': 'Invalid scenario ID format'}), 400
 
             # 화면 검증(여기서 부터 수정해야 함. abd function쪽 수정과 같이 하기)
             if i%2==0:
@@ -307,7 +333,7 @@ def run_scenario(scenario_id):
 
                     # 새로운 화면과 계층정보가 동일하면 성공
                     # 시작화면과 현재 화면이 같은지 비교(홈화면 기준으로 시간이 조금만 달라도 계층정보가 다르다고 판단함)
-                    if (ui_compare):
+                    if (ui_compare(ui_data, after_hierarchy)):
                         scenario_list.update_one(
                             {'_id': ObjectId(scenario_id)},
                             {'$set': {f'scenario.{now_index}.status': 'success'}}
@@ -317,10 +343,10 @@ def run_scenario(scenario_id):
                         before_hierarchy = after_hierarchy
                     else:
                         ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
-                        return jsonify({'message': 'Not match screen error'})
+                        return jsonify({'message': 'Invalid scenario ID format'}), 400
                 except:
                     ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
-                    return jsonify({'message': 'Not match screen error'})
+                    return jsonify({'message': 'Invalid scenario ID format'}), 400
 
     scenario_list.update_one(
         {'_id': ObjectId(scenario_id)},
