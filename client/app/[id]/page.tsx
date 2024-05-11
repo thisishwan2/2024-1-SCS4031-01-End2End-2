@@ -71,7 +71,7 @@ export default function Home() {
       _id: string;
       run_status: string;
       scenario_name: string;
-      scenario: {hierarchy?: string; action?:string}[]
+      scenario: {screenshot_url?:String; ui_data?: string; status?:string; action?:string}[]
     }>(`http://127.0.0.1:5000/e2e/scenarios/${id}`);
     return response.data;
   }})
@@ -189,7 +189,7 @@ export default function Home() {
                 </Button>
               </Box>
               <Box display="flex" gap="40px" alignItems="center" marginBottom="40px">
-              {scenarioDetail?.scenario?.map((item,index) => item.hierarchy !== undefined  ? (<Box key={item.hierarchy|| index} bgcolor="lightgray" width="200px" height="300px"><Button variant="contained" onClick={handlehierarchyButtonClick(index)}>화면정보등록</Button></Box>): (<Box key={item.action||index} bgcolor="lightgray" width="200px" height="300px"><TextField label="액션정보" value={actionText} onChange={(e)=> {
+              {scenarioDetail?.scenario?.map((item,index) => item.ui_data !== undefined  ? (<Box key={item.ui_data|| index} bgcolor="lightgray" width="200px" height="300px"><Button variant="contained" onClick={handlehierarchyButtonClick(index)}>화면정보등록</Button></Box>): (<Box key={item.action||index} bgcolor="lightgray" width="200px" height="300px"><TextField label="액션정보" value={actionText} onChange={(e)=> {
                 setActionText(e.target.value);
               }} /><Button variant="contained" onClick={handleActionButtonClick(index)}>등록</Button></Box>))}
               <Button variant="contained" onClick={() => {
