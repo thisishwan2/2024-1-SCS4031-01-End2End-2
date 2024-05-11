@@ -64,7 +64,6 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 }));
 
 export default function Home() {
-  const [actionText, setActionText] = useState('');
   const {id} = useParams();
   const queryClient= useQueryClient();
   const {data: scenarioDetail} = useQuery({queryKey: ['scenarios', 'detail', id], queryFn: async ()=> {
@@ -114,8 +113,8 @@ export default function Home() {
     }});
   }
 
-  const handleActionButtonClick = (index: number) => () => {
-    postAction({index,action:actionText}, {onSuccess:()=> {
+  const handleActionButtonClick = (index: number) => (action:string) => {
+    postAction({index,action}, {onSuccess:()=> {
       queryClient.invalidateQueries({queryKey: ['scenarios', 'detail', id]})
     }});
   }
@@ -201,22 +200,33 @@ export default function Home() {
                   </Button>
                   {(item.screenshot_url) && <Image width={200} height={300} src={item.screenshot_url} alt="화면 이미지"/>}
                 </Box>):
-                (<Box key={item.action||index} bgcolor="lightgray" width="200px" height="300px">
-                  <TextField label="액션정보" value={actionText|| item.action} onChange={(e)=> {
-                  setActionText(e.target.value);
-                }} />
-                <Button variant="contained" onClick={handleActionButtonClick(index)}>등록</Button>
-              </Box>))}
+                <ActionBox key={index} onClick={handleActionButtonClick(index)}/>
+              )}
               <Button variant="contained" disabled={isPending} onClick={() => {
                   postTask();
               }}>추가</Button>   
             </Box>
-              </>
-            )
+          </>
+            
           
+            )
           })
          }
       </Main>
     </Box>
   );
+}
+
+const ActionBox = ({onClick, action}: {onClick:(action:string) => void; action?:string;}) => {
+
+  const [actionText, setActionText] = useState('');
+  const handleClick = () => {
+    onClick(actionText);
+  }
+  return (<Box bgcolor="lightgray" width="200px" height="300px">
+    <TextField label="액션정보" value={actionText|| action} onChange={(e)=> {
+     setActionText(e.target.value);
+    }} />
+    <Button variant="contained" onClick={handleClick}>등록</Button>
+</Box>)
 }
