@@ -66,6 +66,7 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 export default function Home() {
   const {id} = useParams();
   const queryClient= useQueryClient();
+  const [shouldPolling, setShouldPolling] = useState(false);
   const {data: scenarioDetail} = useQuery({queryKey: ['scenarios', 'detail', id], queryFn: async ()=> {
     const response =  await axios.get<{
       _id: string;
@@ -74,7 +75,10 @@ export default function Home() {
       scenario: {screenshot_url?:string; ui_data?: string; status?:string; action?:string}[]
     }>(`http://127.0.0.1:5000/e2e/scenarios/${id}`);
     return response.data;
-  }})
+  },
+  refetchInterval: 2000
+})
+
 
   const {mutate: posthierarchy} = useMutation({mutationFn: async ({index}: {index: number}) => {
     return axios.post(`http://127.0.0.1:5000/e2e/scenarios/${id}/hierarchy`, {index: String(index)});
@@ -84,7 +88,11 @@ export default function Home() {
   }});
   const {mutate:postRun} = useMutation({mutationFn: async () => {
     return axios.post(`http://127.0.0.1:5000/e2e/scenarios/${id}/run`);
-  },});
+  },
+  onSuccess: () => {
+    setShouldPolling(true);
+  }
+});
 
   const {mutate: postTask, isPending} = useMutation({ mutationFn: () => axios.post(`http://127.0.0.1:5000/e2e/scenarios/tasks`,{ object_id: id}), onSuccess:()=> {
     queryClient.invalidateQueries({queryKey: ['scenarios']});
