@@ -207,6 +207,7 @@ export default function Home() {
                 </Typography>
                 <Button onClick={() =>{
                   postRun();
+                  setShouldPolling(true);
                 }}>
                   시나리오 실행
                 </Button>
