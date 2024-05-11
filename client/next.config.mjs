@@ -9,7 +9,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'https://endtwoend.s3.ap-northeast-2.amazonaws.com',
+        hostname: 'endtwoend.s3.ap-northeast-2.amazonaws.com',
         
       },
     ],
