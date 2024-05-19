@@ -130,7 +130,7 @@ export default function Home() {
               <TableCell align="center" >
                 <Box display="flex" gap="20px" justifyContent="center">
                   <Button color="primary" variant="contained" onClick={() => {
-                    router.push(`/${template._id}`)
+                    router.push(`/templates/${template._id}`)
                   }}>수정</Button>
                   <Button color="error" variant="contained">삭제</Button>
                 </Box>
