@@ -249,7 +249,7 @@ class scenario(Resource):
     @api.response(400, 'Error')
     def get(self, template_id):
         '''
-        시나리오 상세 조회
+        템플릿 상세 조회
         :param scenario_id: 시나리오 아이디
         :return: 시나리오 상세 정보
         '''
@@ -279,7 +279,7 @@ class save_template_action(Resource):
         '''
         return template_service.save_action(template_id)
 
-
+#
 
 # 템플릿 수정
 
