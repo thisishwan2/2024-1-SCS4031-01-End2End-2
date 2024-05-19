@@ -124,6 +124,7 @@ class scenarios(Resource):
 @e2e.route('/scenarios/<string:scenario_id>')
 class scenario(Resource):
     @api.response(200, 'Success')  # 응답 모델 적용
+    @api.response(400, 'Error')
     def get(self, scenario_id):
         '''
         시나리오 상세 조회
@@ -172,6 +173,7 @@ class save_action(Resource):
 @e2e.route('/scenarios/<string:scenario_id>/run')
 class run_scenario(Resource):
     @api.response(200, 'Success', run_scenario_response_model)  # 응답 모델 적용
+    @api.response(400, 'Error')
     def post(self, scenario_id):
         '''
         시나리오 실행(계층정보 - 액션 - 계층정보)
@@ -180,18 +182,8 @@ class run_scenario(Resource):
         return service.run_scenario(scenario_id)
 
 # 전체 시나리오 실행
-@e2e.route('/scenarios')
+@e2e.route('/scenarios/run-all')
 class run_all_scenario(Resource):
-    @api.response(200, 'Success', )  # 응답 모델 적용
+    @api.response(200, 'Success')  # 응답 모델 적용
     def post(self):
-        '''
-        전체 시나리오 실행
-        :return: 시나리오 실행 결과
-        '''
         return service.run_all_scenario()
-
-
-@e2e.route('/scroll-test')
-class scroll_test(Resource):
-    def get(self):
-        return service.auto_scroll_and_capture()
