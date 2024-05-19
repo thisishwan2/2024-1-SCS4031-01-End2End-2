@@ -102,7 +102,7 @@ def adb_connect():
         # 연결된 디바이스가 없는 경우
         if not devices:
             print("No devices found")
-            return jsonify({'message': 'No devices found'})
+            return error_response()
 
         device = devices[0]
         serial_no = device.serial
@@ -168,7 +168,7 @@ def error_response():
         jsonify(
             {"message": "error"}
         ),
-        400,
+        404,
     )
     response.headers["Content-Type"] = "application/json"
     return response
