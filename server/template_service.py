@@ -136,20 +136,20 @@ def extracted_hierarchy(template_id):
         })
 
 # action 저장
-def save_action(scenario_id):
-    scenario_list = app.config['scenario']
+def save_action(template_id):
+    template_list = app.config['template']
 
     if request.method == 'POST':
-        object_id = scenario_id
+        object_id = template_id
         index = int(request.json['index'])
         action = request.json['action']
 
         # MongoDB에서 특정 시나리오의 특정 인덱스에 action 데이터를 업데이트
-        result = scenario_list.update_one(
-            {'_id': ObjectId(object_id), f'scenario.{index}': {'$exists': True}},
+        result = template_list.update_one(
+            {'_id': ObjectId(object_id), f'template.{index}': {'$exists': True}},
             {'$set': {
-                f'scenario.{index}.action': action,
-                f'scenario.{index}.status': 'ready'
+                f'template.{index}.action': action,
+                f'template.{index}.status': 'ready'
             }}
         )
 

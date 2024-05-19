@@ -101,6 +101,11 @@ add_template_task_model = e2e.model('AddTemplateTask', {
     'object_id': fields.String(description='Object ID', required=True),
 })
 
+# 액션 추가 요청 모델
+save_template_action = e2e.model('SaveTemplateAction', {
+    'action': fields. String(description = '수행하고자 하는 action을 입력하세요', required = True, example = '1번 id를 찾아서 클릭해줘'),
+    'index': fields.String(description = '순서', required = True, example = '1')
+})
 
 # 디바이스 연결 확인
 @e2e.route('/device-connection')
@@ -264,8 +269,8 @@ class extracted_hierarchy(Resource):
 
 # 액션 저장
 @e2e.route('/templates/<string:template_id>/action')
-class save_action(Resource):
-    @e2e.expect(save_action)
+class save_template_action(Resource):
+    @e2e.expect(save_template_action)
     # @api.response(200, 'Success', save_action_response_model)  # 응답 모델 적용
     def post(self, template_id):
         '''
