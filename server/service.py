@@ -99,11 +99,6 @@ def create_scenario():
             # 시나리오 컬렉션에 삽입
             scenario_list.insert_one(scenario_document)
 
-        # scenario_document = {'scenario_name': scenario_name,
-        #                      'run_status': 'ready',
-        #                      'scenario': [{'ui_data': "", 'screenshot_url': "", 'status': "ready"},{'action': "", 'status': "ready"},{'ui_data': "", 'screenshot_url': "", 'status': "ready"}]
-        #                      }
-
         return jsonify({'message': 'Success'})
 
 # 시나리오 작업 추가
