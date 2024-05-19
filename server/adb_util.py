@@ -16,6 +16,9 @@ from server.fine_tuning import init_train_data
 from server import app, adb_function
 
 client = openai.OpenAI(api_key=openai.api_key)
+# 시리얼 번호
+serial_no = None
+device = None
 
 # adb 함수 학습시켜서 응답으로 함수도 내보내게 해야하고, 응답 스키마도 설정해야함.
 def infer_viewid(hierarchy, action):
