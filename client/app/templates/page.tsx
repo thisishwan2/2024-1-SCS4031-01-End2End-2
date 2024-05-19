@@ -146,9 +146,9 @@ export default function Home() {
         </DrawerHeader>
         <Divider />
         <List>
-          {['템플릿 관리'].map((text, index) => (
+          {[{text: '시나리오 관리',href: "/"},{text: '템플릿 관리',href: "/templates"}].map(({text,href}, index) => (
             <ListItem key={text} disablePadding>
-              <ListItemButton>
+              <ListItemButton href={href}>
                 <ListItemIcon>
                   {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
                 </ListItemIcon>
