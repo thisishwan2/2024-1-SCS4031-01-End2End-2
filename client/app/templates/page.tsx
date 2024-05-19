@@ -75,22 +75,13 @@ export default function Home() {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const queryClient = useQueryClient();
-  const {data: scenarioList } = useQuery<{_id:string, scenario_name:string, run_status:string}[]>({queryKey: ['scenarios'], queryFn: async () => {
-    const data = await fetch('http://127.0.0.1:5000/e2e/scenarios');
-    return data.json();
-  }, 
-  refetchInterval: 10000
+  const {data: scenarioList } = useQuery<{_id:string, scenario_name:string, run_status:string}[]>({queryKey: ['templates'], queryFn: async () => {
+      const data = await fetch('http://127.0.0.1:5000/e2e/templates');
+      return data.json();
+    }, 
+    refetchInterval: 10000
+  });
 
-})
-
-  const {mutate:postRunAll, isPending:isRunPending} = useMutation({mutationFn: async () => {
-    return axios.post(`http://127.0.0.1:5000/e2e/scenarios/run-all`);
-  },
-  onSuccess:() => {
-    queryClient.invalidateQueries({queryKey: ['scenarios']})
-  }
-},);
 
 
 
@@ -105,10 +96,6 @@ export default function Home() {
   const handleDrawerClose = () => {
     setOpen(false);
   };
-
-  const handleScenarioRunAll = () => {
-    postRunAll()
-  }
 
 
 
@@ -253,30 +240,3 @@ const AddDialog:React.FC<DialogProps> = ({open, onClose}) => {
 
 }
 
-
-// [
-//   {id: "1", name: "로그인", run_status: "failed"},
-//   {id: "2", name: "회원가입", run_status: "success"},
-//   {id: "3", name: "탈퇴", run_status: "loading"},
-//   {id: "4", name: "구매", run_status: "ready"},
-// ]
-// [
-//   {
-//     계층정보: "",
-//     screenshot: "",
-//     status:""
-//   },
-//   {
-//     description:"",
-//     status:"",
-//   },
-//   {
-//     계층정보: "",
-//     screenshot: "",
-//     status:""
-//   },
-//   {
-//     description:"",
-//     status:"",
-//   },
-// ]
