@@ -104,7 +104,6 @@ def create_scenario():
         #                      'scenario': [{'ui_data': "", 'screenshot_url': "", 'status': "ready"},{'action': "", 'status': "ready"},{'ui_data': "", 'screenshot_url': "", 'status': "ready"}]
         #                      }
 
-        inserted_data = scenario_list.insert_one(scenario_document)
         return jsonify({'message': 'Success'})
 
 # 시나리오 작업 추가
