@@ -134,7 +134,7 @@ export default function Home() {
                 }}
                 disabled={isRunPending || templateDetail?.run_status==="loading"}
                 >
-                  시나리오 실행
+                  템플릿 실행
                 </Button>
                 <StatusIcon status={templateDetail?.run_status}/>
               </Box>
@@ -158,7 +158,7 @@ export default function Home() {
           
 
          <Button onClick={()=> {
-          router.push("/")
+          router.push("/templates")
          }} >목록으로</Button>
       </Box>
     </Box>
