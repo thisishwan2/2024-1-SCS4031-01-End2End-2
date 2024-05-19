@@ -1,12 +1,10 @@
 'use client'
-import { Box, Button, CssBaseline, Dialog, DialogActions, DialogTitle, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Modal, TextField, Toolbar, Typography, styled, useTheme } from "@mui/material";
+import { Box, Button, CssBaseline, Dialog, DialogActions, DialogTitle, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Modal, SvgIcon, TextField, Toolbar, Typography, styled, useTheme } from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import {  useState } from "react";
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import InboxIcon from '@mui/icons-material/MoveToInbox';
-import MailIcon from '@mui/icons-material/Mail';
 
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -18,27 +16,9 @@ import Paper from '@mui/material/Paper';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import E2eSpaceIcon from '../e2e-space.svg';
 
 const drawerWidth = 240;
-
-const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
-  open?: boolean;
-}>(({ theme, open }) => ({
-  flexGrow: 1,
-  padding: theme.spacing(3),
-  transition: theme.transitions.create('margin', {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-  marginLeft: `-${drawerWidth}px`,
-  ...(open && {
-    transition: theme.transitions.create('margin', {
-      easing: theme.transitions.easing.easeOut,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
-    marginLeft: 0,
-  }),
-}));
 
 interface AppBarProps extends MuiAppBarProps {
   open?: boolean;
@@ -105,62 +85,27 @@ export default function Home() {
     <>
     
     <Box sx={{ display: 'flex', height:"100%" }}>
-      <CssBaseline />
-      <AppBar position="fixed" open={open}>
+      <AppBar  color="transparent">
         <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            onClick={handleDrawerOpen}
-            edge="start"
-            sx={{ mr: 2, ...(open && { display: 'none' }) }}
-          >
-            <MenuIcon />
-          </IconButton>
-          
-
-          <Typography variant="h6" noWrap component="div">
-            QA 템플릿
-          </Typography>
-
-          
-        </Toolbar>
-      </AppBar>
-      <Drawer
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: drawerWidth,
-            boxSizing: 'border-box',
-          },
-        }}
-        variant="persistent"
-        anchor="left"
-        open={open}
-      >
-        <DrawerHeader>
-          <IconButton onClick={handleDrawerClose}>
-            {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-          </IconButton>
-        </DrawerHeader>
-        <Divider />
-        <List>
+          <E2eSpaceIcon />
+          <List sx={{display:"flex",marginLeft:"30px" }}>
           {[{text: '시나리오 관리',href: "/"},{text: '템플릿 관리',href: "/templates"}].map(({text,href}, index) => (
-            <ListItem key={text} disablePadding>
+            <ListItem key={text} disablePadding sx={{whiteSpace:"nowrap"}}>
               <ListItemButton href={href}>
-                <ListItemIcon>
-                  {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
-                </ListItemIcon>
                 <ListItemText primary={text} />
               </ListItemButton>
             </ListItem>
           ))}
         </List>
-        <Divider />
-      </Drawer>
-      <Main open={open}>
+
+          
+        </Toolbar>
+      </AppBar>
+      <Box flexGrow={1} padding={theme.spacing(3)} >
         <DrawerHeader />
+        <Typography variant="h5" noWrap component="div">
+            QA 템플릿
+        </Typography>
         <Box display="flex" justifyContent="flex-end" padding="20px" gap="20px">           
           <Button color="primary" variant='contained' onClick={handleTemplateAdd}>템플릿 추가</Button>
         </Box>
@@ -196,7 +141,7 @@ export default function Home() {
       </Table>
     </TableContainer>
     
-      </Main>
+      </Box>
     </Box>
     <AddDialog open={isModalOpen} onClose={() => {setIsModalOpen(false)}}/>
     </>
