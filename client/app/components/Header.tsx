@@ -7,7 +7,7 @@ import { useState } from "react";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const {isSuccess, isError,refetch} = useQuery({queryKey: ['device-connection'], queryFn: async () => {
+  const {isSuccess, isError,refetch, isLoading} = useQuery({queryKey: ['device-connection'], queryFn: async () => {
     const response =  await axios.get<{
       message: string;
     }>(`http://127.0.0.1:5000/e2e/device-connection`);
@@ -40,7 +40,7 @@ const Header = () => {
           }
         }} sx={{display:"flex", alignItems:"center", gap:"5px"}}>
           <ListItemText primary={"디바이스 연결 확인"} />
-          <StatusIcon status={isSuccess ? "success" : isError ? "fail": "ready"} hasText={false}/>
+          <StatusIcon status={isSuccess ? "success" : isError ? "fail": isLoading ? "loading" : "ready"} hasText={false}/>
         </ListItemButton>
       </ListItem>
     </List>
