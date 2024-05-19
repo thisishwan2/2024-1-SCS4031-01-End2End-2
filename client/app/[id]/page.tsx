@@ -144,7 +144,7 @@ const ActionBox = ({onClick, action, status}: {onClick:(action:string) => void; 
 }
 
 
-export const StatusIcon = ({status}: {status?:string}) => {
+export const StatusIcon = ({status, hasText = true}: {status?:string; hasText?:boolean}) => {
   const Icon = ()=> {
     if(status ==="success"){
       return <CheckCircleOutline color="success" />
@@ -160,7 +160,7 @@ export const StatusIcon = ({status}: {status?:string}) => {
   }
 
   return <Box display="inline-flex" alignItems="center" >
-    status: <Icon />
+    {hasText && "status:"} <Icon />
   </Box>
 }
 

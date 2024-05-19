@@ -1,8 +1,22 @@
-import { AppBar, List, ListItem, ListItemButton, ListItemText, Toolbar } from "@mui/material"
+import { AppBar, Box, Dialog, List, ListItem, ListItemButton, ListItemText, Toolbar, Typography } from "@mui/material"
 import E2eSpaceIcon from '../e2e-space.svg';
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+import { StatusIcon } from "../[id]/page";
+import { useState } from "react";
 
 const Header = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const {isSuccess, isError,refetch} = useQuery({queryKey: ['device-connection'], queryFn: async () => {
+    const response =  await axios.get<{
+      message: string;
+    }>(`http://127.0.0.1:5000/e2e/device-connection`);
+    return response.data;
+  }, enabled: false 
+  });
+
   return (
+    <>
     <AppBar color="transparent">
     <Toolbar>
       <E2eSpaceIcon />
@@ -14,12 +28,36 @@ const Header = () => {
           </ListItemButton>
         </ListItem>
       ))}
+      <ListItem disablePadding sx={{whiteSpace:"nowrap"}}>
+        <ListItemButton onClick={async ()=>{
+          try {
+            
+            await refetch();
+            setIsOpen(true);
+            
+          }catch(e) {
+            setIsOpen(true);
+          }
+        }} sx={{display:"flex", alignItems:"center", gap:"5px"}}>
+          <ListItemText primary={"디바이스 연결 확인"} />
+          <StatusIcon status={isSuccess ? "success" : isError ? "fail": "ready"} hasText={false}/>
+        </ListItemButton>
+      </ListItem>
     </List>
 
       
     </Toolbar>
   </AppBar>
+  <Dialog open={isOpen} onClose={()=> {setIsOpen(false)}} maxWidth="xl" sx={{padding:"20px"}} >
+      
+      <Box padding="20px" width="400px">
+        {isError ? <Typography textAlign="center" variant="h5">디바이스 연결되지 않음</Typography>: <Typography textAlign="center" variant="h5">디바이스 연결됨</Typography>}
+      </Box>
+    </Dialog>
+  </>
   )
 }
 
 export default Header
+
+
