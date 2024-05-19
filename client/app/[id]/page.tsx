@@ -1,38 +1,17 @@
 'use client'
 import { Box, Button, CircularProgress, CssBaseline, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, TextField, Toolbar, Typography, styled, useTheme } from "@mui/material";
-import MenuIcon from '@mui/icons-material/Menu';
+
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import { useEffect, useState } from "react";
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import InboxIcon from '@mui/icons-material/MoveToInbox';
-import MailIcon from '@mui/icons-material/Mail';
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
 import Image from "next/image";
 import { BlockOutlined, CancelOutlined, CheckCircleOutline, CircleOutlined,  } from "@mui/icons-material";
+import E2eSpaceIcon from '../e2e-space.svg';
 
 const drawerWidth = 240;
-
-const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
-  open?: boolean;
-}>(({ theme, open }) => ({
-  flexGrow: 1,
-  padding: theme.spacing(3),
-  transition: theme.transitions.create('margin', {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-  marginLeft: `-${drawerWidth}px`,
-  ...(open && {
-    transition: theme.transitions.create('margin', {
-      easing: theme.transitions.easing.easeOut,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
-    marginLeft: 0,
-  }),
-}));
 
 interface AppBarProps extends MuiAppBarProps {
   open?: boolean;
@@ -53,15 +32,6 @@ const AppBar = styled(MuiAppBar, {
       duration: theme.transitions.duration.enteringScreen,
     }),
   }),
-}));
-
-const DrawerHeader = styled('div')(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  padding: theme.spacing(0, 1),
-  // necessary for content to be below app bar
-  ...theme.mixins.toolbar,
-  justifyContent: 'flex-end',
 }));
 
 export default function Home() {
@@ -111,13 +81,6 @@ export default function Home() {
   } })
   const theme = useTheme();
   const [open, setOpen] = useState(false);
-  const [scenario, setScenario] = useState([
-    {
-      id: 1,
-      title: '시나리오 1',
-      list: []
-    }
-  ]);
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -142,69 +105,28 @@ export default function Home() {
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
-      <AppBar position="fixed" open={open}>
+      <AppBar color="transparent">
         <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            onClick={handleDrawerOpen}
-            edge="start"
-            sx={{ mr: 2, ...(open && { display: 'none' }) }}
-          >
-            <MenuIcon />
-          </IconButton>
-          
-
-          <Typography variant="h6" noWrap component="div">
-            QA 시나리오
-          </Typography>
-
-          
-          
-        </Toolbar>
-      </AppBar>
-      <Drawer
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: drawerWidth,
-            boxSizing: 'border-box',
-          },
-        }}
-        variant="persistent"
-        anchor="left"
-        open={open}
-      >
-        <DrawerHeader>
-          <IconButton onClick={handleDrawerClose}>
-            {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-          </IconButton>
-        </DrawerHeader>
-        <Divider />
-        <List>
-          {['시나리오 관리'].map((text, index) => (
-            <ListItem key={text} disablePadding>
-              <ListItemButton>
-                <ListItemIcon>
-                  {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
-                </ListItemIcon>
+          <E2eSpaceIcon />
+          <List sx={{display:"flex",marginLeft:"30px" }}>
+          {[{text: '시나리오 관리',href: "/"},{text: '템플릿 관리',href: "/templates"}].map(({text,href}, index) => (
+            <ListItem key={text} disablePadding sx={{whiteSpace:"nowrap"}}>
+              <ListItemButton href={href}>
                 <ListItemText primary={text} />
               </ListItemButton>
             </ListItem>
           ))}
         </List>
-        <Divider />
-      </Drawer>
-      <Main open={open}>
-        <DrawerHeader />
-         {
-          scenario.map(item => {
-            return (
+
+          
+        </Toolbar>
+      </AppBar>
+      <Box flexGrow={1} padding={theme.spacing(3)} paddingTop={theme.spacing(10)} >
+
               <>
-              <Box key={item.id} display="flex" gap="20px" alignItems="center" marginBottom="15px">
-                <Typography paragraph margin="0">
-                  {item.title}
+              <Box  display="flex" gap="20px" alignItems="center" marginBottom="15px">
+                <Typography variant="h5" margin="0">
+                  {scenarioDetail?.scenario_name}
                 </Typography>
                 <Button onClick={() =>{
                   postRun();
@@ -234,13 +156,11 @@ export default function Home() {
           </>
             
           
-            )
-          })
-         }
+
          <Button onClick={()=> {
           router.push("/")
          }} >목록으로</Button>
-      </Main>
+      </Box>
     </Box>
   );
 }
