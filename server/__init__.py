@@ -6,6 +6,7 @@ app = Flask(__name__)
 CORS(app)  # 모든 도메인에서의 CORS 요청을 허용
 
 from server import routes
+from server import s3_upload
 
 # db 연동
 client = MongoClient(host='localhost', port=27017)
