@@ -1,5 +1,5 @@
 'use client'
-import { Box, Button, CssBaseline, Dialog, DialogActions, DialogTitle, TextField, Typography, useTheme } from "@mui/material";
+import { Box, Button, CssBaseline, Dialog, DialogActions, DialogTitle, InputLabel, MenuItem, Select, TextField, Typography, useTheme } from "@mui/material";
 import {  useState } from "react";
 
 
@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { StatusIcon } from "./[id]/page";
 import Header from "./components/Header";
+import SelectInput from "@mui/material/Select/SelectInput";
 
 
 
@@ -31,6 +32,8 @@ export default function Home() {
   refetchInterval: 10000
 
 })
+
+
 
   const {mutate:postRunAll, isPending:isRunPending} = useMutation({mutationFn: async () => {
     return axios.post(`http://127.0.0.1:5000/e2e/scenarios/run-all`);
@@ -124,15 +127,21 @@ interface DialogProps {
 const AddDialog:React.FC<DialogProps> = ({open, onClose}) => {
   const queryClient= useQueryClient();
 
-  const { mutate } = useMutation({"mutationFn": async (name: string) => {
-    await axios.post("http://127.0.0.1:5000/e2e/scenarios",{scenario_name: name});
+  const { mutate } = useMutation({"mutationFn": async ({name, templateId}:{name: string,templateId?:string}) => {
+    await axios.post("http://127.0.0.1:5000/e2e/scenarios",{scenario_name: name, template_id:templateId});
   }});
+  const {data: templateList } = useQuery<{_id:string, template_name:string, run_status:string}[]>({queryKey: ['templates'], queryFn: async () => {
+    const data = await fetch('http://127.0.0.1:5000/e2e/templates');
+    return data.json();
+  }
+  });
   const [name, setName] = useState("");
+  const [template, setTemplate] = useState<string>();
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setName(e.target.value);
   }
   const handleAdd = () => {
-    mutate(name,{
+    mutate({name,templateId: template},{
       onSuccess:() => {
         queryClient.invalidateQueries({queryKey: ['scenarios']})
         onClose();
@@ -145,6 +154,15 @@ const AddDialog:React.FC<DialogProps> = ({open, onClose}) => {
       <Box padding="20px" width="400px">
         <TextField label="시나리오 이름" fullWidth onChange={handleChange} value={name}/>
       </Box>
+      <Box padding="20px" width="400px">
+        <InputLabel id="demo-simple-select-label">템플릿 불러오기</InputLabel>
+      
+        <Select labelId="demo-simple-select-label" label="템플릿 불러오기" fullWidth onChange={(e)=>{
+          setTemplate(e.target.value);
+        }} value={template}>
+          {templateList?.map(template => (<MenuItem key={template._id} value={template._id}>{template.template_name}</MenuItem>))}
+        </Select>
+      </Box>
       <DialogActions>
         <Button disabled={!name} variant="contained" color="primary" onClick={handleAdd}>추가</Button>
         <Button variant="contained" color="error" onClick={onClose}>취소</Button>
@@ -154,30 +172,3 @@ const AddDialog:React.FC<DialogProps> = ({open, onClose}) => {
 
 }
 
-
-// [
-//   {id: "1", name: "로그인", run_status: "failed"},
-//   {id: "2", name: "회원가입", run_status: "success"},
-//   {id: "3", name: "탈퇴", run_status: "loading"},
-//   {id: "4", name: "구매", run_status: "ready"},
-// ]
-// [
-//   {
-//     계층정보: "",
-//     screenshot: "",
-//     status:""
-//   },
-//   {
-//     description:"",
-//     status:"",
-//   },
-//   {
-//     계층정보: "",
-//     screenshot: "",
-//     status:""
-//   },
-//   {
-//     description:"",
-//     status:"",
-//   },
-// ]
