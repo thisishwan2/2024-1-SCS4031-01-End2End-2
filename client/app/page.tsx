@@ -19,27 +19,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { StatusIcon } from "./[id]/page";
+import E2eSpaceIcon from './e2e-space.svg';
 
 const drawerWidth = 240;
-
-const Main = styled('main', { shouldForwardProp: (prop) => prop !== 'open' })<{
-  open?: boolean;
-}>(({ theme, open }) => ({
-  flexGrow: 1,
-  padding: theme.spacing(3),
-  transition: theme.transitions.create('margin', {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-  marginLeft: `-${drawerWidth}px`,
-  ...(open && {
-    transition: theme.transitions.create('margin', {
-      easing: theme.transitions.easing.easeOut,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
-    marginLeft: 0,
-  }),
-}));
 
 interface AppBarProps extends MuiAppBarProps {
   open?: boolean;
@@ -62,14 +44,6 @@ const AppBar = styled(MuiAppBar, {
   }),
 }));
 
-const DrawerHeader = styled('div')(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  padding: theme.spacing(0, 1),
-  // necessary for content to be below app bar
-  ...theme.mixins.toolbar,
-  justifyContent: 'flex-end',
-}));
 
 export default function Home() {
   const router = useRouter()
@@ -120,61 +94,26 @@ export default function Home() {
     
     <Box sx={{ display: 'flex', height:"100%" }}>
       <CssBaseline />
-      <AppBar position="fixed" open={open}>
+      <AppBar color="transparent">
         <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            onClick={handleDrawerOpen}
-            edge="start"
-            sx={{ mr: 2, ...(open && { display: 'none' }) }}
-          >
-            <MenuIcon />
-          </IconButton>
-          
-
-          <Typography variant="h6" noWrap component="div">
-            QA 시나리오
-          </Typography>
-
-          
-        </Toolbar>
-      </AppBar>
-      <Drawer
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: drawerWidth,
-            boxSizing: 'border-box',
-          },
-        }}
-        variant="persistent"
-        anchor="left"
-        open={open}
-      >
-        <DrawerHeader>
-          <IconButton onClick={handleDrawerClose}>
-            {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-          </IconButton>
-        </DrawerHeader>
-        <Divider />
-        <List>
+          <E2eSpaceIcon />
+          <List sx={{display:"flex",marginLeft:"30px" }}>
           {[{text: '시나리오 관리',href: "/"},{text: '템플릿 관리',href: "/templates"}].map(({text,href}, index) => (
-            <ListItem key={text} disablePadding>
+            <ListItem key={text} disablePadding sx={{whiteSpace:"nowrap"}}>
               <ListItemButton href={href}>
-                <ListItemIcon>
-                  {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
-                </ListItemIcon>
                 <ListItemText primary={text} />
               </ListItemButton>
             </ListItem>
           ))}
         </List>
-        <Divider />
-      </Drawer>
-      <Main open={open}>
-        <DrawerHeader />
+
+          
+        </Toolbar>
+      </AppBar>
+      <Box flexGrow={1} padding={theme.spacing(3)} paddingTop={theme.spacing(10)} >
+        <Typography variant="h5" noWrap component="div">
+            시나리오 목록
+        </Typography>
         <Box display="flex" justifyContent="flex-end" padding="20px" gap="20px"> 
           <Button color="primary" variant="outlined" disabled={isRunPending} onClick={handleScenarioRunAll}>시나리오 전체 실행</Button>
 
@@ -213,7 +152,7 @@ export default function Home() {
       </Table>
     </TableContainer>
     
-      </Main>
+      </Box>
     </Box>
     <AddDialog open={isModalOpen} onClose={() => {setIsModalOpen(false)}}/>
     </>
