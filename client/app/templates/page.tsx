@@ -1,10 +1,6 @@
 'use client'
-import { Box, Button, CssBaseline, Dialog, DialogActions, DialogTitle, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Modal, SvgIcon, TextField, Toolbar, Typography, styled, useTheme } from "@mui/material";
-import MenuIcon from '@mui/icons-material/Menu';
-import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
+import { Box, Button, Dialog, DialogActions, DialogTitle, TextField, Typography, styled, useTheme } from "@mui/material";
 import {  useState } from "react";
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -16,30 +12,9 @@ import Paper from '@mui/material/Paper';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import E2eSpaceIcon from '../e2e-space.svg';
 
-const drawerWidth = 240;
+import Header from "../components/Header";
 
-interface AppBarProps extends MuiAppBarProps {
-  open?: boolean;
-}
-
-const AppBar = styled(MuiAppBar, {
-  shouldForwardProp: (prop) => prop !== 'open',
-})<AppBarProps>(({ theme, open }) => ({
-  transition: theme.transitions.create(['margin', 'width'], {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-  ...(open && {
-    width: `calc(100% - ${drawerWidth}px)`,
-    marginLeft: `${drawerWidth}px`,
-    transition: theme.transitions.create(['margin', 'width'], {
-      easing: theme.transitions.easing.easeOut,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
-  }),
-}));
 
 const DrawerHeader = styled('div')(({ theme }) => ({
   display: 'flex',
@@ -85,22 +60,7 @@ export default function Home() {
     <>
     
     <Box sx={{ display: 'flex', height:"100%" }}>
-      <AppBar  color="transparent">
-        <Toolbar>
-          <E2eSpaceIcon />
-          <List sx={{display:"flex",marginLeft:"30px" }}>
-          {[{text: '시나리오 관리',href: "/"},{text: '템플릿 관리',href: "/templates"}].map(({text,href}, index) => (
-            <ListItem key={text} disablePadding sx={{whiteSpace:"nowrap"}}>
-              <ListItemButton href={href}>
-                <ListItemText primary={text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-
-          
-        </Toolbar>
-      </AppBar>
+      <Header />
       <Box flexGrow={1} padding={theme.spacing(3)} >
         <DrawerHeader />
         <Typography variant="h5" noWrap component="div">
