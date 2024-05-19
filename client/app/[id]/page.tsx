@@ -1,7 +1,6 @@
 'use client'
 import { Box, Button, CircularProgress, CssBaseline, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, TextField, Toolbar, Typography, styled, useTheme } from "@mui/material";
 
-import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import { useEffect, useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -9,30 +8,9 @@ import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
 import Image from "next/image";
 import { BlockOutlined, CancelOutlined, CheckCircleOutline, CircleOutlined,  } from "@mui/icons-material";
-import E2eSpaceIcon from '../e2e-space.svg';
 
-const drawerWidth = 240;
+import Header from "../components/Header";
 
-interface AppBarProps extends MuiAppBarProps {
-  open?: boolean;
-}
-
-const AppBar = styled(MuiAppBar, {
-  shouldForwardProp: (prop) => prop !== 'open',
-})<AppBarProps>(({ theme, open }) => ({
-  transition: theme.transitions.create(['margin', 'width'], {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-  ...(open && {
-    width: `calc(100% - ${drawerWidth}px)`,
-    marginLeft: `${drawerWidth}px`,
-    transition: theme.transitions.create(['margin', 'width'], {
-      easing: theme.transitions.easing.easeOut,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
-  }),
-}));
 
 export default function Home() {
   const {id} = useParams();
@@ -105,22 +83,7 @@ export default function Home() {
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
-      <AppBar color="transparent">
-        <Toolbar>
-          <E2eSpaceIcon />
-          <List sx={{display:"flex",marginLeft:"30px" }}>
-          {[{text: '시나리오 관리',href: "/"},{text: '템플릿 관리',href: "/templates"}].map(({text,href}, index) => (
-            <ListItem key={text} disablePadding sx={{whiteSpace:"nowrap"}}>
-              <ListItemButton href={href}>
-                <ListItemText primary={text} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-
-          
-        </Toolbar>
-      </AppBar>
+     <Header/>
       <Box flexGrow={1} padding={theme.spacing(3)} paddingTop={theme.spacing(10)} >
 
               <>
@@ -181,7 +144,7 @@ const ActionBox = ({onClick, action, status}: {onClick:(action:string) => void; 
 }
 
 
-export const StatusIcon = ({status}: {status?:string}) => {
+export const StatusIcon = ({status, hasText = true}: {status?:string; hasText?:boolean}) => {
   const Icon = ()=> {
     if(status ==="success"){
       return <CheckCircleOutline color="success" />
@@ -197,7 +160,7 @@ export const StatusIcon = ({status}: {status?:string}) => {
   }
 
   return <Box display="inline-flex" alignItems="center" >
-    status: <Icon />
+    {hasText && "status:"} <Icon />
   </Box>
 }
 
