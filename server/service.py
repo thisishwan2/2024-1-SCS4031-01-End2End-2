@@ -6,12 +6,11 @@ import time
 from pathlib import Path
 
 from bson import errors
-from bson.json_util import dumps
 from bson.objectid import ObjectId
 from pymongo import ASCENDING, ReturnDocument
 
-from com.dtmilano.android.viewclient import ViewClient, ListView, View, UiScrollable
-from flask import Flask, request, jsonify, make_response
+from com.dtmilano.android.viewclient import ViewClient
+from flask import request, jsonify, make_response
 from ppadb.client import Client as AdbClient
 import xml.etree.ElementTree as elemTree
 import boto3
@@ -63,7 +62,7 @@ def scenarios():
 
         return jsonify(list(scenarios))
 
-# 시나리오 상세 보기([{},{},{}]) 이 형태로 수정
+# 시나리오 상세 보기
 def scenario(scenario_id):
     if request.method == 'GET':
         scenario_list = app.config['scenario']
@@ -167,17 +166,6 @@ def extracted_hierarchy(scenario_id):
         # mongodb에 저장
         transform(ui_list, ui_data)
 
-        # MongoDB에서 특정 시나리오의 hierarchy 배열을 업데이트
-        # result = scenario_list.update_one(
-        #     {'_id': ObjectId(object_id), f'scenario.{index}.hierarchy': {'$exists': True}},
-        #     {'$set': {
-        #         f'scenario.{index}.hierarchy': {
-        #             'ui_data': ui_data,  # UI 데이터
-        #             'screenshot_url': screenshot_url,  # 스크린샷 URL
-        #             'status': 'ready'  # 상태
-        #         }
-        #     }}
-        # )
         result = scenario_list.update_one(
             {'_id': ObjectId(object_id), f'scenario.{index}': {'$exists': True}},
             {'$set': {
@@ -441,12 +429,6 @@ def infer_viewid(hierarchy, action):
         text = ans_lst[1].split("=")[-1]
         function_name = ans_lst[2].split("=")[-1]
         return key, text, function_name
-
-
-
-
-
-
 
 
 # S3 연결
