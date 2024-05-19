@@ -75,7 +75,7 @@ export default function Home() {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const {data: scenarioList } = useQuery<{_id:string, scenario_name:string, run_status:string}[]>({queryKey: ['templates'], queryFn: async () => {
+  const {data: templateList } = useQuery<{_id:string, template_name:string, run_status:string}[]>({queryKey: ['templates'], queryFn: async () => {
       const data = await fetch('http://127.0.0.1:5000/e2e/templates');
       return data.json();
     }, 
@@ -85,7 +85,7 @@ export default function Home() {
 
 
 
-  const handleScenarioAdd = () => {
+  const handleTemplateAdd = () => {
     setIsModalOpen(true);
   }
 
@@ -162,7 +162,7 @@ export default function Home() {
       <Main open={open}>
         <DrawerHeader />
         <Box display="flex" justifyContent="flex-end" padding="20px" gap="20px">           
-          <Button color="primary" variant='contained' onClick={handleScenarioAdd}>템플릿 추가</Button>
+          <Button color="primary" variant='contained' onClick={handleTemplateAdd}>템플릿 추가</Button>
         </Box>
         <TableContainer component={Paper}>
       <Table sx={{ minWidth: 650 }} aria-label="simple table">
@@ -173,19 +173,19 @@ export default function Home() {
           </TableRow>
         </TableHead>
         <TableBody>
-          {(scenarioList)?.map((scenario) => (
+          {(templateList)?.map((template) => (
             <TableRow
-              key={scenario._id}
+              key={template._id}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
               <TableCell align="center" component="th" scope="row">
-                {scenario.scenario_name}
+                {template.template_name}
               </TableCell>
 
               <TableCell align="center" >
                 <Box display="flex" gap="20px" justifyContent="center">
                   <Button color="primary" variant="contained" onClick={() => {
-                    router.push(`/${scenario._id}`)
+                    router.push(`/${template._id}`)
                   }}>수정</Button>
                   <Button color="error" variant="contained">삭제</Button>
                 </Box>
@@ -211,7 +211,7 @@ const AddDialog:React.FC<DialogProps> = ({open, onClose}) => {
   const queryClient= useQueryClient();
 
   const { mutate } = useMutation({"mutationFn": async (name: string) => {
-    await axios.post("http://127.0.0.1:5000/e2e/scenarios",{scenario_name: name});
+    await axios.post("http://127.0.0.1:5000/e2e/templates",{template_name: name});
   }});
   const [name, setName] = useState("");
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,7 +220,7 @@ const AddDialog:React.FC<DialogProps> = ({open, onClose}) => {
   const handleAdd = () => {
     mutate(name,{
       onSuccess:() => {
-        queryClient.invalidateQueries({queryKey: ['scenarios']})
+        queryClient.invalidateQueries({queryKey: ['templates']})
         onClose();
       }
     })
