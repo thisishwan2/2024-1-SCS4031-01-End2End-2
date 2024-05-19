@@ -1,13 +1,18 @@
+import os
 from urllib import request
 from pymongo import ReturnDocument
 from flask import request, jsonify, make_response
 from bson.objectid import ObjectId
 from bson import errors
+from com.dtmilano.android.viewclient import ViewClient
 
 
 
 from server import adb_function
 from server import app
+from server.service import take_screenshot, s3_put_object, transform
+
+from server.service import serial_no
 
 # 템플릿 리스트 조회
 def templates():
@@ -87,3 +92,65 @@ def template(template_id):
             return jsonify(template_doc)
         else:
             return jsonify({'error': 'Scenario not found'}), 404
+
+# 현재 계층 정보 추출 및 DB에 저장
+def extracted_hierarchy(template_id):
+
+
+    template_list = app.config['template']
+
+    if request.method == 'POST':
+        print("extracted_hierarchy")
+
+        object_id = template_id
+        index = int(request.json['index'])
+
+        vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
+        # traverse_to_list 메서드를 사용하여 디바이스의 UI 계층 구조를 리스트로 반환(ViewClient로 부터 재 정의함)
+        ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)  # vc의 디바이스 UI 트리를 순회하여 리스트로 반환
+
+        # 스크린샷을 찍어서 s3에 저장
+        screenshot_dir = take_screenshot()
+        screenshot_url = s3_put_object(screenshot_dir)
+
+        # 로컬에서 이미지 삭제
+        os.remove(screenshot_dir)
+
+        ui_data = {}
+        # mongodb에 저장
+        transform(ui_list, ui_data)
+
+        result = template_list.update_one(
+            {'_id': ObjectId(object_id), f'template.{index}': {'$exists': True}},
+            {'$set': {
+                f'template.{index}': {
+                    'ui_data': ui_data,  # UI 데이터
+                    'screenshot_url': screenshot_url,  # 스크린샷 URL
+                    'status': 'ready'  # 상태
+                }
+            }}
+        )
+
+        return jsonify({
+            'screenshot_url': screenshot_url,
+        })
+
+# action 저장
+def save_action(scenario_id):
+    scenario_list = app.config['scenario']
+
+    if request.method == 'POST':
+        object_id = scenario_id
+        index = int(request.json['index'])
+        action = request.json['action']
+
+        # MongoDB에서 특정 시나리오의 특정 인덱스에 action 데이터를 업데이트
+        result = scenario_list.update_one(
+            {'_id': ObjectId(object_id), f'scenario.{index}': {'$exists': True}},
+            {'$set': {
+                f'scenario.{index}.action': action,
+                f'scenario.{index}.status': 'ready'
+            }}
+        )
+
+    return jsonify({"message": "success"})
