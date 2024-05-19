@@ -17,7 +17,8 @@ import boto3
 import openai
 from openai import OpenAI
 
-from server.adb_util import ui_compare, ui_compare_fail, serial_no, device, execute_function, take_screenshot
+from server.adb_util import ui_compare, ui_compare_fail, serial_no, device, execute_function, take_screenshot, \
+    error_response
 from server.fine_tuning import init_train_data
 
 from server import adb_function
@@ -38,16 +39,6 @@ client = openai.OpenAI(api_key=openai.api_key)
 # 시리얼 번호
 serial_no = serial_no
 device = device
-
-def error_response():
-    response = make_response(
-        jsonify(
-            {"message": "error"}
-        ),
-        400,
-    )
-    response.headers["Content-Type"] = "application/json"
-    return response
 
 
 # 시나리오 리스트 조회
@@ -204,7 +195,7 @@ def save_action(scenario_id):
 
     return jsonify({"message": "success"})
 
-# 테스트 시나리오 실행
+# 시나리오 실행
 def run_scenario(scenario_id):
     scenario_list = app.config['scenario']
     scenario = scenario_list.find_one({'_id': ObjectId(scenario_id)})

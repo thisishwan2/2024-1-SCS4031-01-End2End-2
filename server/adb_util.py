@@ -7,7 +7,7 @@ from bson.objectid import ObjectId
 import json
 import openai
 from ppadb.client import Client as AdbClient
-from flask import request, jsonify
+from flask import request, jsonify, make_response
 from com.dtmilano.android.viewclient import ViewClient
 
 
@@ -162,3 +162,13 @@ def run_result(scenario_list, scenario_id):
         {'_id': ObjectId(scenario_id)},
         {'$set': {'run_status': 'fail'}}
     )
+
+def error_response():
+    response = make_response(
+        jsonify(
+            {"message": "error"}
+        ),
+        400,
+    )
+    response.headers["Content-Type"] = "application/json"
+    return response
