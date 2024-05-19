@@ -13,7 +13,7 @@ from server import app
 def templates():
     if request.method == 'GET':
         template_list = app.config['template']
-        cursor = template_list.find({}, {'scenario_name': 1, 'run_status': 1})
+        cursor = template_list.find({}, {'template_name': 1, 'run_status': 1})
 
         # 쿼리 결과를 JSON 직렬화 가능한 형태로 변환
         templates = []
@@ -33,13 +33,41 @@ def create_template():
 
         template_document = {'template_name': template_name,
                              'run_status': 'ready',
-                             'scenario': [{'ui_data': "", 'screenshot_url': "", 'status': "ready"},
+                             'template': [{'ui_data': "", 'screenshot_url': "", 'status': "ready"},
                                           {'action': "", 'status': "ready"},
                                           {'ui_data': "", 'screenshot_url': "", 'status': "ready"}]
                              }
 
         inserted_data = template_list.insert_one(template_document)
         return jsonify({'message': 'Success'})
+
+# 템플릿 작업 추가
+def add_task():
+    if request.method == 'POST':
+        template_list = app.config['template']
+        object_id = request.json['object_id']
+
+        try:
+            # MongoDB에서 시나리오 문서를 조회
+            template_doc = template_list.find_one({'_id': ObjectId(object_id)})
+        except errors.InvalidId:
+            return jsonify({'error': 'Invalid template ID format'}), 400
+
+        if template_doc:
+            # 시나리오 문서에 작업 추가
+            new_tasks = [{'action': "", 'status': "ready"},{'ui_data': "", 'screenshot_url': "", 'status': "ready"}]
+            updated_scenario = template_list.find_one_and_update(
+                {'_id': ObjectId(object_id)},
+                {'$push': {'template': {'$each': new_tasks}}},
+                return_document=ReturnDocument.AFTER
+            )
+
+            if updated_scenario:
+                return jsonify({'message': 'success'})
+            else:
+                return jsonify({'error': 'Update failed'}), 500
+        else:
+            return jsonify({'error': 'Template not found'}), 404
 
 # 템플릿 상세 보기
 def template(template_id):
