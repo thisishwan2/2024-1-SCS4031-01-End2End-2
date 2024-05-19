@@ -5,7 +5,7 @@ from server import template_service
 
 
 api = Api(app, version='1.0', title='e2e API 문서', description='Swagger 문서', doc="/api-docs")
-e2e = api.namespace(name = "e2e_scenario", description='e2e API')
+e2e = api.namespace(name = "e2e", description='e2e API')
 
 # 개별 시나리오 아이템 응답 모델
 scenario_model = api.model('scenario', {
