@@ -1,6 +1,7 @@
 from server import service
 from flask_restx import Api, Resource, reqparse, fields
 from server import app
+from server import template_service
 
 
 api = Api(app, version='1.0', title='e2e API 문서', description='Swagger 문서', doc="/api-docs")
@@ -187,3 +188,70 @@ class run_all_scenario(Resource):
     @api.response(200, 'Success')  # 응답 모델 적용
     def post(self):
         return service.run_all_scenario()
+
+# 템플릿 리스트 불러오기
+@e2e.route('/templates')
+class scenarios(Resource):
+    @api.response(200, 'Success')  # 응답 모델 적용
+    def get(self):
+        '''
+        템플릿 리스트 불러오기
+        :return: 템플릿 리스트
+        '''
+        scenarios = template_service.templates()  # 시나리오 데이터를 불러오는 서비스 함수
+        return scenarios  # 모델에 맞게 데이터를 포맷
+
+    # 템플릿 생성
+    # @e2e.expect()
+    @api.response(200, 'Success')  # 응답 모델 적용
+    def post(self):
+        '''
+        템플릿 생성
+        '''
+        return template_service.create_template()
+
+# 템플릿 작업 추가
+@e2e.route('/templates/tasks')
+class add_task(Resource):
+    # @e2e.expect(add_task_model)
+    @api.response(200, 'Success')  # 응답 모델 적용
+    def post(self):
+        '''
+        템플릿 작업 추가
+        '''
+        return template_service
+
+# 현재 계층 정보 추출 및 DB에 저장
+@e2e.route('/templates/<string:template_id>/hierarchy')
+class extracted_hierarchy(Resource):
+    @e2e.expect(extracted_hierarchy_model)
+    @api.response(200, 'Success', extracted_hierarchy_response_model)
+    def post(self, scenario_id):
+        '''
+        현재 계층 정보 추출 및 DB에 저장
+        :return: 현재 계층 정보
+        '''
+        return template_service.extracted_hierarchy(scenario_id)
+
+# 액션 저장
+@e2e.route('/scenarios/<string:scenario_id>/action')
+class save_action(Resource):
+    @e2e.expect(save_action)
+    # @api.response(200, 'Success', save_action_response_model)  # 응답 모델 적용
+    def post(self, scenario_id):
+        '''
+        액션 저장
+        :return: 액션 아이디
+        '''
+        return template_service.save_action(scenario_id)
+# 템플릿 화면 추가
+
+# 템플릿 액션 추가
+
+# 템플릿 목록 조회
+
+# 템플릿 수정
+
+# 화면(계층 구조) 재등록
+
+# 액션 수정
