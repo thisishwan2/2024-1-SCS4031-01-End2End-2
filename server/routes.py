@@ -29,6 +29,7 @@ scenario_detail_model = api.model('scenario_detail', {
 # 시나리오 생성 요청 모델
 create_scenario_model = e2e.model('CreateScenario', {
     'scenario_name': fields.String(description='시나리오 이름', required=True),
+    'template_id': fields.String(description='템플릿 아이디')
 })
 
 # 시나리오 생성 응답 모델
@@ -210,10 +211,6 @@ class run_all_scenario(Resource):
     @api.response(200, 'Success')  # 응답 모델 적용
     def post(self):
         return service.run_all_scenario()
-
-# 템플릿 불러오기
-
-
 
 # 템플릿 리스트 불러오기
 @e2e.route('/templates')

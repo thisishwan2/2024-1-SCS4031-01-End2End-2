@@ -79,13 +79,30 @@ def scenario(scenario_id):
 def create_scenario():
     if request.method == 'POST':
         scenario_list = app.config['scenario']
+        template_list = app.config['template']
 
         scenario_name = request.json['scenario_name']
+        template_id = request.json['template_id']
 
-        scenario_document = {'scenario_name': scenario_name,
-                             'run_status': 'ready',
-                             'scenario': [{'ui_data': "", 'screenshot_url': "", 'status': "ready"},{'action': "", 'status': "ready"},{'ui_data': "", 'screenshot_url': "", 'status': "ready"}]
-                             }
+        # 템플릿 조회
+        template_doc = template_list.find_one({'_id': ObjectId(template_id)})
+
+        if template_doc:
+            template_data = template_doc.get('template', [])
+
+            scenario_document = {
+                'scenario_name': scenario_name,
+                'run_status': 'ready',
+                'scenario': template_data
+            }
+
+            # 시나리오 컬렉션에 삽입
+            scenario_list.insert_one(scenario_document)
+
+        # scenario_document = {'scenario_name': scenario_name,
+        #                      'run_status': 'ready',
+        #                      'scenario': [{'ui_data': "", 'screenshot_url': "", 'status': "ready"},{'action': "", 'status': "ready"},{'ui_data': "", 'screenshot_url': "", 'status': "ready"}]
+        #                      }
 
         inserted_data = scenario_list.insert_one(scenario_document)
         return jsonify({'message': 'Success'})
