@@ -10,6 +10,7 @@ from com.dtmilano.android.viewclient import ViewClient
 
 from server import adb_function
 from server import app
+from server.adb_util import ui_compare, ui_compare_fail, error_response, infer_viewid, execute_function
 from server.service import take_screenshot, s3_put_object, transform
 
 from server.service import serial_no
@@ -154,3 +155,127 @@ def save_action(template_id):
         )
 
     return jsonify({"message": "success"})
+
+# 템플릿 시나리오 실행
+def run_template(template_id):
+    template_list = app.config['template']
+    template = template_list.find_one({'_id': ObjectId(template_id)})
+
+    before_hierarchy = None
+    now_index = 0
+    template_seq = template['template']  # 시나리오 순서 추출(화면-액션-화면-액션...)
+
+    # 전체 status 로딩으로 처리
+    template_list.update_one(
+        {'_id': ObjectId(template_id)},
+        {'$set': {'run_status': 'loading'}}
+    )
+
+    # 모든 태스크를 준비상태로 처리
+    for i in range(len(template_seq)):
+        template_list.update_one(
+            {'_id': ObjectId(template_id)},
+            {'$set': {f'template.{i}.status': 'ready'}}
+        )
+
+    try:
+        start = template_seq[0]
+        start_hierarchy = start['ui_data']
+        start_status = start['status']
+        before_hierarchy = start_hierarchy
+
+        # loading 처리
+        template_list.update_one(
+            {'_id': ObjectId(template_id)},
+            {'$set': {'template.0.status': 'loading'}}
+        )
+
+        # 현재 화면 추출 및 변환
+        vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
+        ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)
+        ui_data = {}
+        transform(ui_list, ui_data)
+        # 시작화면과 현재 화면이 같은지 비교(홈화면 기준으로 시간이 조금만 달라도 계층정보가 다르다고 판단함)
+        if (ui_compare(ui_data, before_hierarchy)):
+            # 시작은 성공
+            template_list.update_one(
+                {'_id': ObjectId(template_id)},
+                {'$set': {'template.0.status': 'success'}}
+            )
+
+        else:  # 다른화면인 경우
+            ui_compare_fail(now_index, template_id, template_list, template_seq)
+            return error_response()
+    except Exception as e:
+        # 첫 화면에서 실패했다면 모든 태스크는 실패 처리
+        ui_compare_fail(now_index, template_id, template_list, template_seq)
+        return error_response()
+    result = None
+    # 이후 태스크 실행 및 검증
+    for index in range(1, len(template_seq)):
+        # loading 처리
+        template_list.update_one(
+            {'_id': ObjectId(template_id)},
+            {'$set': {f'template.{index}.status': 'loading'}}
+        )
+
+        # 액션 검증
+        if index % 2 == 1:
+            try:
+                action_cmd = template_seq[index]['action']
+                # action_status = scenario_seq[i]['status']
+                # 문제없이 액션 값을 받아오면 성공
+                result = infer_viewid(before_hierarchy, action_cmd)
+
+                template_list.update_one(
+                    {'_id': ObjectId(template_id)},
+                    {'$set': {f'template.{index}.status': 'success'}}
+                )
+            except:
+                ui_compare_fail(index, template_id, template_list, template_seq)
+                return error_response()
+
+        # 화면 검증(여기서 부터 수정해야 함. abd function쪽 수정과 같이 하기)
+        elif index % 2 == 0:
+            try:
+                after_hierarchy = template_seq[index]['ui_data']
+
+                # adb 함수 수행
+                if len(result) == 2:
+                    key, function_name = result
+
+                    if function_name == 'back' or function_name == 'home' or 'swipe' in function_name:
+                        execute_function(function_name)
+                    else:
+                        execute_function(function_name, key, serial_no)  # 문자열로 함수 실행
+
+                # 새로운 화면에 대한 계층정보 추출 변환
+                vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
+                vc.dump(window='-1', sleep=1)  # 현재 화면을 강제로 새로 고침
+                ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)
+
+                ui = {}
+                transform(ui_list, ui)
+                before_hierarchy = after_hierarchy
+
+                # 새로운 화면과 계층정보가 동일하면 성공
+                # 시작화면과 현재 화면이 같은지 비교(홈화면 기준으로 시간이 조금만 달라도 계층정보가 다르다고 판단함)
+                if (ui_compare(ui, after_hierarchy)):
+                    template_list.update_one(
+                        {'_id': ObjectId(template_id)},
+                        {'$set': {f'template.{index}.status': 'success'}}
+                    )
+
+                else:
+                    ui_compare_fail(index, template_id, template_list, template_seq)
+                    return error_response()
+
+            except:
+                ui_compare_fail(index, template_id, template_list, template_seq)
+                return error_response()
+
+    template_list.update_one(
+        {'_id': ObjectId(template_id)},
+        {'$set': {'run_status': 'success'}}
+    )
+    return jsonify({'message': 'Success'})

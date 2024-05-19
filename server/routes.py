@@ -2,7 +2,7 @@ from server import service
 from flask_restx import Api, Resource, reqparse, fields
 from server import app
 from server import template_service
-
+from server import adb_util
 
 api = Api(app, version='1.0', title='e2e API 문서', description='Swagger 문서', doc="/api-docs")
 e2e = api.namespace(name = "e2e", description='e2e API')
@@ -107,6 +107,11 @@ save_template_action = e2e.model('SaveTemplateAction', {
     'index': fields.String(description = '순서', required = True, example = '1')
 })
 
+# 템플릿 시나리오 실행 응답 모델
+run_template_response_model = api.model('RunTemplateResponse', {
+    'result': fields.String(description='템플릿 실행 결과', required=True, example='success')
+})
+
 # 디바이스 연결 확인
 @e2e.route('/device-connection')
 class adb_connect(Resource):
@@ -115,7 +120,7 @@ class adb_connect(Resource):
         디바이스 연결 확인
         :return: 디바이스 연결 상태
         '''
-        return service.adb_connect()
+        return adb_util.adb_connect()
 
 # 시나리오 리스트 불러오기
 @e2e.route('/scenarios')
@@ -279,7 +284,17 @@ class save_template_action(Resource):
         '''
         return template_service.save_action(template_id)
 
-#
+# 템플릿 시나리오 실행
+@e2e.route('/templates/<string:template_id>/run')
+class run_template(Resource):
+    @api.response(200, 'Success', run_template_response_model)  # 응답 모델 적용
+    @api.response(400, 'Error')
+    def post(self, template_id):
+        '''
+        템플릿 실행(계층정보 - 액션 - 계층정보)
+        :return: 템플릿 실행 결과
+        '''
+        return template_service.run_template(template_id)
 
 # 템플릿 수정
 

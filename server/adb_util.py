@@ -7,7 +7,7 @@ from bson.objectid import ObjectId
 import json
 import openai
 from ppadb.client import Client as AdbClient
-from flask import request, jsonify
+from flask import request, jsonify, make_response
 from com.dtmilano.android.viewclient import ViewClient
 
 
@@ -102,7 +102,7 @@ def adb_connect():
         # 연결된 디바이스가 없는 경우
         if not devices:
             print("No devices found")
-            return jsonify({'message': 'No devices found'})
+            return error_response()
 
         device = devices[0]
         serial_no = device.serial
@@ -162,3 +162,13 @@ def run_result(scenario_list, scenario_id):
         {'_id': ObjectId(scenario_id)},
         {'$set': {'run_status': 'fail'}}
     )
+
+def error_response():
+    response = make_response(
+        jsonify(
+            {"message": "error"}
+        ),
+        404,
+    )
+    response.headers["Content-Type"] = "application/json"
+    return response
