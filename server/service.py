@@ -1,24 +1,19 @@
 import json
 import os
 import re
-import subprocess
-import time
-from pathlib import Path
 
 from bson import errors
 from bson.objectid import ObjectId
-from pymongo import ASCENDING, ReturnDocument
+from pymongo import ReturnDocument
 
 from com.dtmilano.android.viewclient import ViewClient
 from flask import request, jsonify, make_response
-from ppadb.client import Client as AdbClient
 import xml.etree.ElementTree as elemTree
-import boto3
 import openai
 from openai import OpenAI
 
 from server.adb_util import ui_compare, ui_compare_fail, serial_no, device, execute_function, take_screenshot, \
-    error_response
+    error_response, test_recommand_route
 from server.fine_tuning import init_train_data
 
 from server import adb_function
@@ -82,22 +77,32 @@ def create_scenario():
         template_list = app.config['template']
 
         scenario_name = request.json['scenario_name']
-        template_id = request.json['template_id']
+        template_id = request.json.get('template_id')  # 옵셔널로 가져오기
 
-        # 템플릿 조회
-        template_doc = template_list.find_one({'_id': ObjectId(template_id)})
+        if template_id:
+            # 템플릿 조회
+            template_doc = template_list.find_one({'_id': ObjectId(template_id)})
 
-        if template_doc:
-            template_data = template_doc.get('template', [])
+            if template_doc:
+                template_data = template_doc.get('template', [])
 
-            scenario_document = {
-                'scenario_name': scenario_name,
-                'run_status': 'ready',
-                'scenario': template_data
-            }
+                scenario_document = {
+                    'scenario_name': scenario_name,
+                    'run_status': 'ready',
+                    'scenario': template_data
+                }
 
-            # 시나리오 컬렉션에 삽입
-            scenario_list.insert_one(scenario_document)
+                # 시나리오 컬렉션에 삽입
+                scenario_list.insert_one(scenario_document)
+        else:
+            scenario_document = {'scenario_name': scenario_name,
+                                 'run_status': 'ready',
+                                 'scenario': [{'ui_data': "", 'screenshot_url': "", 'status': "ready"},
+                                              {'action': "", 'status': "ready"},
+                                              {'ui_data': "", 'screenshot_url': "", 'status': "ready"}]
+                                 }
+
+            inserted_data = scenario_list.insert_one(scenario_document)
 
         return jsonify({'message': 'Success'})
 
@@ -388,3 +393,6 @@ def infer_viewid(hierarchy, action):
         text = ans_lst[1].split("=")[-1]
         function_name = ans_lst[2].split("=")[-1]
         return key, text, function_name
+
+def test():
+    test_recommand_route()
