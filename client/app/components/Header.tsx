@@ -4,6 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { StatusIcon } from "../[id]/page";
 import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,8 +15,10 @@ const Header = () => {
       message: string;
     }>(`http://127.0.0.1:5000/e2e/device-connection`);
     return response.data;
-  }, enabled: false 
+  }
   });
+  const path = usePathname();
+  
 
   return (
     <>
@@ -21,13 +26,16 @@ const Header = () => {
     <Toolbar>
       <E2eSpaceIcon />
       <List sx={{display:"flex",marginLeft:"30px" }}>
-      {[{text: '시나리오 관리',href: "/"},{text: '템플릿 관리',href: "/templates"}].map(({text,href}, index) => (
+      {[{text: '시나리오 관리',href: "/"},{text: '템플릿 관리',href: "/templates"}].map(({text,href}, index) =>{
+        return (
         <ListItem key={text} disablePadding sx={{whiteSpace:"nowrap"}}>
-          <ListItemButton href={href}>
-            <ListItemText primary={text} />
-          </ListItemButton>
+          <Box sx={{padding:"8px 16px"}}>
+            <Link style={{textDecoration:"none", fontWeight:"bold"}}  href={href}>
+              <ListItemText primary={text} sx={{ color: href === path ? "#1976d2" : "grey", ":hover": {color: href === path ? "#1976d2" :"black"}}}/>
+            </Link>
+          </Box>
         </ListItem>
-      ))}
+      )})}
       <ListItem disablePadding sx={{whiteSpace:"nowrap"}}>
         <ListItemButton onClick={async ()=>{
           try {

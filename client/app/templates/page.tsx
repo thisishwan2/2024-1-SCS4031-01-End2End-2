@@ -60,7 +60,6 @@ export default function Home() {
     <>
     
     <Box sx={{ display: 'flex', height:"100%" }}>
-      <Header />
       <Box flexGrow={1} padding={theme.spacing(3)} >
         <DrawerHeader />
         <Typography variant="h5" noWrap component="div">

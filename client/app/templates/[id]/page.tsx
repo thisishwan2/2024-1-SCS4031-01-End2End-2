@@ -8,7 +8,6 @@ import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
 import Image from "next/image";
 import { BlockOutlined, CancelOutlined, CheckCircleOutline, CircleOutlined,  } from "@mui/icons-material";
-import Header from "@/app/components/Header";
 
 
 
@@ -82,8 +81,7 @@ export default function Home() {
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <CssBaseline />
-      <Header/>
+      
       <Box flexGrow={1} padding={theme.spacing(3)} paddingTop={theme.spacing(10)} >
 
               <>
