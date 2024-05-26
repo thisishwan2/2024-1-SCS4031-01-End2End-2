@@ -29,11 +29,11 @@ const Header = () => {
       {[{text: '시나리오 관리',href: "/"},{text: '템플릿 관리',href: "/templates"}].map(({text,href}, index) =>{
         return (
         <ListItem key={text} disablePadding sx={{whiteSpace:"nowrap"}}>
-          <ListItemButton>
-            <Link style={{textDecoration:"none"}}  href={href}>
-              <ListItemText primary={text} style={{ color: href === path ? "#1976d2" : "black"}}/>
+          <Box sx={{padding:"8px 16px"}}>
+            <Link style={{textDecoration:"none", fontWeight:"bold"}}  href={href}>
+              <ListItemText primary={text} sx={{ color: href === path ? "#1976d2" : "grey", ":hover": {color: href === path ? "#1976d2" :"black"}}}/>
             </Link>
-          </ListItemButton>
+          </Box>
         </ListItem>
       )})}
       <ListItem disablePadding sx={{whiteSpace:"nowrap"}}>
