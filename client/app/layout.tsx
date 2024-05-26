@@ -1,9 +1,7 @@
 'use client'
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { CssBaseline } from "@mui/material"
 import Header from "./components/Header"
-
-
-const queryClient = new QueryClient()
+import { ReactQueryClientProvider } from "./components/ReactQueryProviders"
 
 export default function RootLayout({
   children,
@@ -12,10 +10,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <QueryClientProvider client={queryClient}>
+      <ReactQueryClientProvider>
+      <CssBaseline />
       <Header/>
         <body>{children}</body>
-      </QueryClientProvider>
+      </ReactQueryClientProvider>
     </html>
   )
 }

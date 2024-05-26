@@ -69,8 +69,7 @@ export default function Home() {
     <>
     
     <Box sx={{ display: 'flex', height:"100%" }}>
-      <CssBaseline />
-      <Header/>
+
       <Box flexGrow={1} padding={theme.spacing(3)} paddingTop={theme.spacing(10)} >
         <Typography variant="h5" noWrap component="div">
             시나리오 목록

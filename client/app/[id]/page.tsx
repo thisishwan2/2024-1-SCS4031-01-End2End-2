@@ -82,8 +82,7 @@ export default function Home() {
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <CssBaseline />
-     <Header/>
+
       <Box flexGrow={1} padding={theme.spacing(3)} paddingTop={theme.spacing(10)} >
 
               <>
