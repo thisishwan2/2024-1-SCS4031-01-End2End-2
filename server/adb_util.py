@@ -6,6 +6,7 @@ from urllib import request
 from bson.objectid import ObjectId
 import json
 import openai
+from openai import OpenAI
 from ppadb.client import Client as AdbClient
 from flask import request, jsonify, make_response
 from com.dtmilano.android.viewclient import ViewClient
@@ -15,7 +16,8 @@ from com.dtmilano.android.viewclient import ViewClient
 from server.fine_tuning import init_train_data
 from server import app, adb_function
 
-client = openai.OpenAI(api_key=openai.api_key)
+# client = openai.OpenAI(api_key=openai.api_key)
+client = OpenAI()
 # 시리얼 번호
 serial_no = None
 device = None
@@ -172,3 +174,28 @@ def error_response():
     )
     response.headers["Content-Type"] = "application/json"
     return response
+
+def test_recommand_route():
+    # action을 GPT에 입력(gpt api는 이전 대회를 기억하지 못함)
+    response = client.chat.completions.create(
+        model="gpt-4-turbo",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "해당 이미지를 바탕으로 QA를 진행할거야. 내가 해볼 테스트를 추천해줘. 1. ~~, 2. ~~와 같이 리스트화 하고 키워드만 적어서 알려줘"},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url":"https://endtwoend.s3.ap-northeast-2.amazonaws.com/screenshot_12_48_07.png",
+                            "detail": "high"
+                        },
+                    },
+                ],
+            }
+        ],
+        max_tokens=300,
+    )
+    print(response.choices[0])
