@@ -12,8 +12,11 @@ export default function RootLayout({
     <html lang="en">
       <ReactQueryClientProvider>
       <CssBaseline />
-      <Header/>
-        <body>{children}</body>
+      
+        <body>
+        <Header/>
+          {children}
+        </body>
       </ReactQueryClientProvider>
     </html>
   )

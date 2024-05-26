@@ -1,3 +1,4 @@
+'use client'
 import { AppBar, Box, Dialog, List, ListItem, ListItemButton, ListItemText, Toolbar, Typography } from "@mui/material"
 import E2eSpaceIcon from '../e2e-space.svg';
 import { useQuery } from "@tanstack/react-query";

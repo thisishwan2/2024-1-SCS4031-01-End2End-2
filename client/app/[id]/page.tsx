@@ -1,5 +1,5 @@
 'use client'
-import { Box, Button, CircularProgress, CssBaseline, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, TextField, Toolbar, Typography, styled, useTheme } from "@mui/material";
+import { Box, Button, CircularProgress,  TextField, Typography, useTheme } from "@mui/material";
 
 import { useEffect, useState } from "react";
 
@@ -8,9 +8,6 @@ import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
 import Image from "next/image";
 import { BlockOutlined, CancelOutlined, CheckCircleOutline, CircleOutlined,  } from "@mui/icons-material";
-
-import Header from "../components/Header";
-
 
 export default function Home() {
   const {id} = useParams();
@@ -102,7 +99,7 @@ export default function Home() {
               </Box>
               <Box display="flex" gap="40px" alignItems="center" marginBottom="40px">
               {scenarioDetail?.scenario?.map((item,index) => item.ui_data !== undefined 
-               ? (<Box key={item.ui_data|| index} bgcolor="lightgray" width="200px" height="300px" display="flex" flexDirection="column" gap="10px">
+               ? (<Box key={item.ui_data|| index} bgcolor="lightgray" width="200px" height="300px" display="flex" flexDirection="column" gap="10px"  >
                 <StatusIcon status={item.status}/>
                 <Button variant="contained" onClick={handlehierarchyButtonClick(index)}>
                   화면정보등록
@@ -159,7 +156,7 @@ export const StatusIcon = ({status, hasText = true}: {status?:string; hasText?:b
   }
 
   return <Box display="inline-flex" alignItems="center" >
-    {hasText && "status:"} <Icon />
+     <Icon />
   </Box>
 }
 
