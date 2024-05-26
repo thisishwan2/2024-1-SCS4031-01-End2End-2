@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { StatusIcon } from "../[id]/page";
 import { useState } from "react";
+import Link from "next/link";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,7 +13,7 @@ const Header = () => {
       message: string;
     }>(`http://127.0.0.1:5000/e2e/device-connection`);
     return response.data;
-  }, enabled: false 
+  }
   });
 
   return (
@@ -23,8 +24,10 @@ const Header = () => {
       <List sx={{display:"flex",marginLeft:"30px" }}>
       {[{text: '시나리오 관리',href: "/"},{text: '템플릿 관리',href: "/templates"}].map(({text,href}, index) => (
         <ListItem key={text} disablePadding sx={{whiteSpace:"nowrap"}}>
-          <ListItemButton href={href}>
-            <ListItemText primary={text} />
+          <ListItemButton>
+            <Link style={{textDecoration:"none", color: "black"}}  href={href}>
+              <ListItemText primary={text} />
+            </Link>
           </ListItemButton>
         </ListItem>
       ))}
