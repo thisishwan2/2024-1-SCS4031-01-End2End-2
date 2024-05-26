@@ -279,3 +279,9 @@ def run_template(template_id):
         {'$set': {'run_status': 'success'}}
     )
     return jsonify({'message': 'Success'})
+
+def delete_template(template_id):
+    template_list = app.config['template']
+    template_list.delete_one({'_id': ObjectId(template_id)})
+
+    return jsonify({'message': 'Success'})

@@ -1,5 +1,5 @@
 from server import service
-from flask_restx import Api, Resource, reqparse, fields
+from flask_restx import Api, Resource, fields
 from server import app
 from server import template_service
 from server import adb_util
@@ -157,6 +157,10 @@ class scenario(Resource):
         '''
         return service.scenario(str(scenario_id))
 
+    # 시나리오 삭제
+    @api.response(200, 'Success')
+    def delete(self, scenario_id):
+        return service.delete_scenario(scenario_id)
 
 # 시나리오 작업 추가
 @e2e.route('/scenarios/tasks')
@@ -257,6 +261,11 @@ class scenario(Resource):
         '''
         return template_service.template(str(template_id))
 
+    # 템플릿 삭제
+    @api.response(200, 'Success')
+    def delete(self, template_id):
+        return template_service.delete_template(template_id)
+
 # 현재 계층 정보 추출 및 DB에 저장
 @e2e.route('/templates/<string:template_id>/hierarchy')
 class extracted_hierarchy(Resource):
@@ -293,8 +302,8 @@ class run_template(Resource):
         '''
         return template_service.run_template(template_id)
 
-# 템플릿 수정
-
-# 화면(계층 구조) 재등록
-
-# 액션 수정
+# 이미지를 바탕으로 시나리오 추천
+@e2e.route('/test')
+class Test(Resource):
+    def get(self):
+        return service.test()

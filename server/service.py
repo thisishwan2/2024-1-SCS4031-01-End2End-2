@@ -350,6 +350,11 @@ def run_all_scenario():
 
     return jsonify({'message': 'Success'})
 
+def delete_scenario(scenario_id):
+    scenario_list = app.config['scenario']
+    scenario_list.delete_one({'_id': ObjectId(scenario_id)})
+
+    return jsonify({'message': 'Success'})
 
 
 # adb 함수 학습시켜서 응답으로 함수도 내보내게 해야하고, 응답 스키마도 설정해야함.
