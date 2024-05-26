@@ -5,6 +5,8 @@ import axios from "axios";
 import { StatusIcon } from "../[id]/page";
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,6 +17,8 @@ const Header = () => {
     return response.data;
   }
   });
+  const path = usePathname();
+  
 
   return (
     <>
@@ -22,15 +26,16 @@ const Header = () => {
     <Toolbar>
       <E2eSpaceIcon />
       <List sx={{display:"flex",marginLeft:"30px" }}>
-      {[{text: '시나리오 관리',href: "/"},{text: '템플릿 관리',href: "/templates"}].map(({text,href}, index) => (
+      {[{text: '시나리오 관리',href: "/"},{text: '템플릿 관리',href: "/templates"}].map(({text,href}, index) =>{
+        return (
         <ListItem key={text} disablePadding sx={{whiteSpace:"nowrap"}}>
           <ListItemButton>
-            <Link style={{textDecoration:"none", color: "black"}}  href={href}>
-              <ListItemText primary={text} />
+            <Link style={{textDecoration:"none"}}  href={href}>
+              <ListItemText primary={text} style={{ color: href === path ? "#1976d2" : "black"}}/>
             </Link>
           </ListItemButton>
         </ListItem>
-      ))}
+      )})}
       <ListItem disablePadding sx={{whiteSpace:"nowrap"}}>
         <ListItemButton onClick={async ()=>{
           try {
