@@ -8,8 +8,8 @@ import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 
 export default function Guide() {
   return (
-    <div>
-      <Typography>시나리오 생성 가이드</Typography>
+    <div style={{marginTop:"40px"}}>
+      <Typography variant='h5'>시나리오 생성 가이드</Typography>
       <Accordion>
         <AccordionSummary
           expandIcon={<ArrowDownwardIcon />}

@@ -116,12 +116,6 @@ export default function Home() {
               }}>추가</Button>   
             </Box>
           </>
-            
-          
-
-         <Button sx={{marginTop:'20px'}} onClick={()=> {
-          router.push("/templates")
-         }} >목록으로</Button>
       </Box>
       <Guide/>
     </Box>

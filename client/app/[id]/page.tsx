@@ -115,11 +115,7 @@ export default function Home() {
             </Box>
           </>
             
-          
 
-         <Button sx={{marginTop:'20px'}} onClick={()=> {
-          router.push("/")
-         }} >목록으로</Button>
       </Box>
       <Guide/>
     </Box>
