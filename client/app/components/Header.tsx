@@ -23,7 +23,7 @@ const Header = () => {
 
   return (
     <>
-    <AppBar color="transparent">
+    <AppBar color="inherit">
     <Toolbar>
       <E2eSpaceIcon />
       <List sx={{display:"flex",marginLeft:"30px" }}>
