@@ -11,7 +11,7 @@ import { usePathname } from "next/navigation";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const {isSuccess, isError,refetch, isLoading} = useQuery({queryKey: ['device-connection'], queryFn: async () => {
+  const {isSuccess, isError,refetch, isLoading} = useQuery({queryKey: ['device-connection'], enabled:false, queryFn: async () => {
     const response =  await axios.get<{
       message: string;
     }>(`http://127.0.0.1:5000/e2e/device-connection`);

@@ -99,13 +99,13 @@ export default function Home() {
               </Box>
               <Box display="flex" gap="40px" alignItems="center" marginBottom="40px">
               {scenarioDetail?.scenario?.map((item,index) => item.ui_data !== undefined 
-               ? (<Box key={item.ui_data|| index} bgcolor="lightgray" width="200px" height="300px" display="flex" flexDirection="column" gap="10px"  >
-                <StatusIcon status={item.status}/>
-                <Button variant="contained" onClick={handlehierarchyButtonClick(index)}>
-                  화면정보등록
-                  </Button>
-                  {(item.screenshot_url) && <Image width={200} height={300} src={item.screenshot_url} alt="화면 이미지"/>}
-                </Box>):
+               ?  (<Box key={item.ui_data|| index}  padding="5px"borderRadius="10px"bgcolor="#F8DEDE" width="200px" height="300px" display="flex" flexDirection="column" gap="10px"position="relative">
+               <StatusIcon status={item.status}/>
+               <Button variant="contained" onClick={handlehierarchyButtonClick(index)} sx={{position:"absolute", bottom: '-50px', left: "50%", transform: "translateX(-50%)", whiteSpace:"nowrap"}}>
+                 화면정보등록
+                 </Button>
+                 {(item.screenshot_url) && <Image width={200} height={300} src={item.screenshot_url} alt="화면 이미지"/>}
+               </Box>):
                 <ActionBox key={index} action={item.action} status={item.status} onClick={handleActionButtonClick(index)}/>
               )}
               <Button variant="contained" disabled={isPending} onClick={() => {
@@ -127,18 +127,26 @@ export default function Home() {
 const ActionBox = ({onClick, action, status}: {onClick:(action:string) => void; action?:string;status?:string}) => {
 
   const [actionText, setActionText] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
   const handleClick = () => {
     onClick(actionText);
   }
-  return (<Box bgcolor="lightgray" width="200px" height="300px">
-    <StatusIcon status={status}/>
-    <TextField label="액션정보" value={actionText|| action} onChange={(e)=> {
+  return (<Box bgcolor="white" width="200px" height="300px" border="1px solid lightgrey" borderRadius="10px" padding="5px">
+    <Box display="flex"  borderBottom="1px solid lightgrey" marginBottom="30px">
+
+    <StatusIcon status={status} />
+    <Typography marginLeft="35px" variant="h6">액션 정보</Typography>
+    </Box>
+    <TextField  label="액션정보" value={isEditing ? actionText :actionText|| action} onChange={(e)=> {
+      setIsEditing(true);
      setActionText(e.target.value);
     }} />
-    <Button variant="contained" onClick={handleClick}>등록</Button>
+    <Box display="flex" justifyContent="center" marginTop="10px">
+
+      <Button variant="contained" disabled={actionText ==="" || actionText===action} onClick={handleClick}>등록</Button>
+    </Box>
 </Box>)
 }
-
 
 export const StatusIcon = ({status, hasText = true}: {status?:string; hasText?:boolean}) => {
   const Icon = ()=> {
