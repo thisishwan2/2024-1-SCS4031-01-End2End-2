@@ -105,7 +105,7 @@ export default function Home() {
                <Button variant="contained" onClick={handlehierarchyButtonClick(index)} sx={{position:"absolute", bottom: '-50px', left: "50%", transform: "translateX(-50%)", whiteSpace:"nowrap"}}>
                  화면정보등록
                  </Button>
-                 {(item.screenshot_url) && <Image width={200} height={300} src={item.screenshot_url} alt="화면 이미지"/>}
+                 {(item.screenshot_url) && <Box sx={{height:"calc(100% - 20px)", position:"relative"}}><Image fill src={item.screenshot_url} alt="화면 이미지"/></Box>}
                </Box>):
                 <ActionBox key={index} action={item.action} status={item.status} onClick={handleActionButtonClick(index)}/>
               )}

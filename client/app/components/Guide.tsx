@@ -5,6 +5,9 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 import Typography from '@mui/material/Typography';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import Image from 'next/image';
+import image1 from '../guide1.png';
+import image2 from '../guide2.png';
 
 export default function Guide() {
   return (
@@ -33,9 +36,11 @@ export default function Guide() {
           <Typography>2. 화면 정보 등록</Typography>
         </AccordionSummary>
         <AccordionDetails>
+          
           <Typography>
             테스트하고자 하는 화면으로 디바이스를 조작한 뒤, 홤면 정보 등록 버튼을 눌러 화면 정보를 등록합니다.(몇 초 소요)
           </Typography>
+            <Image src={image1} alt="화면정보 등록" width={500} height={300} />
         </AccordionDetails>
       </Accordion>
       <Accordion>
@@ -71,6 +76,8 @@ export default function Guide() {
           <Typography>
             액션 입력이 완료되면, 디바이스로 해당 액션을 수행한 뒤에 나타나는 화면을 다음 화면 등록창에 등록합니다.
           </Typography>
+            <Image src={image2} alt="다음 화면 등록" width={500} height={300} />
+
         </AccordionDetails>
       </Accordion>
       <Accordion>
