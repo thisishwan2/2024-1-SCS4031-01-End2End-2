@@ -8,6 +8,7 @@ import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
 import Image from "next/image";
 import { BlockOutlined, CancelOutlined, CheckCircleOutline, CircleOutlined,  } from "@mui/icons-material";
+import Guide from "../components/Guide";
 
 export default function Home() {
   const {id} = useParams();
@@ -78,7 +79,7 @@ export default function Home() {
   }
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', flexDirection:"column",  }}>
 
       <Box flexGrow={1} padding={theme.spacing(3)} paddingTop={theme.spacing(10)} >
 
@@ -116,10 +117,11 @@ export default function Home() {
             
           
 
-         <Button onClick={()=> {
+         <Button sx={{marginTop:'20px'}} onClick={()=> {
           router.push("/")
          }} >목록으로</Button>
       </Box>
+      <Guide/>
     </Box>
   );
 }
