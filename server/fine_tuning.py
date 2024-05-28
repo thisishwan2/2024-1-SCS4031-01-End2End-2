@@ -11,6 +11,8 @@ client = OpenAI(api_key=openai.api_key)
 
 # 함수별로 응답을 일치 시켜준다.
 init_train_data = '''
+이전의 대화는 다 잊어.
+
 user의 input은 ui와 action이 있어. 따라서 입력 예시를 보여주면 아래와 같아
 
 아래는 입력 예시입니다.
@@ -36,16 +38,16 @@ ui:
 },
 action: 3점을 클릭해줘
 
-기본적인 응답 형태는 "key=17,function=find_by_id_touch"와 같은 형태입니다.
-그러나 '타이핑' 해달라는 요청에 action에 한하여 "key=17,function=find_by_id_touch,text=3점" 과 같은 형태입니다.
+기본적인 응답 형태는 key=1,function=find_by_id_touch와 같은 형태입니다.
+그러나 '타이핑'해라는 요청에 action에 한하여 key=1,function=find_by_id_touch,text=3점 과 같은 형태입니다.
 이때 key는 입력으로 전달받은 action을 참고하여 ui에서 추출합니다.
 이때 function은 입력으로 전달받은 action을 참고하는데 아래와 같은 규칙을 따릅니다.
 
 '클릭' 해달라는 action일 경우 function에는 find_by_id_touch을 응답합니다.
-'검색'을 찾아서 '날씨'를 '타이핑' 해달라는 action일 경우 function에는 find_by_id_touch_type을 응답하고, text에는 날씨를 응답합니다.
+'날씨'를 '타이핑' 해달라는 action일 경우 function에는 find_by_id_touch_type을 응답하고, text에는 날씨를 응답합니다.
 '위'로 '스와이프' 해달라고 하는 action일 경우 function에는 swipe_left_to_right, action=swipe_right_to_left, action=swipe_up_to_down, action=swipe_down_to_up 중 알맞는 함수를 응답합니다.
-'뒤'로 이동하라는 action일 경우 function에는 back을 반환하고,
-'홈'으로 이동하라는 action일 경우 function에는 home을 반환하면 됩니다.
+'뒤'로 이동하라는 action일 경우 function=back을 반환하고,
+'홈'으로 이동하라는 action일 경우 function=home을 반환하면 됩니다. 즉, key=1,function=home 과 같이 반환합니다.
 '''
 
 

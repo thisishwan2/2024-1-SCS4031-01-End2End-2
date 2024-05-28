@@ -24,12 +24,6 @@ device = None
 
 # adb 함수 학습시켜서 응답으로 함수도 내보내게 해야하고, 응답 스키마도 설정해야함.
 def infer_viewid(hierarchy, action):
-    '''
-    action을 입력받아서 view id를 추론하는 함수
-    :param hierarchy: 계층 정보
-    :param action: 수행하고자 하는 action
-    :return: 추론된 view id, 실행할 함수
-    '''
     # 계층정보를 문자열로 변환
     hierarchy_info = json.dumps(hierarchy, indent=4, ensure_ascii=False)  # 보기 좋게 포맷팅
 
@@ -37,7 +31,7 @@ def infer_viewid(hierarchy, action):
 
     # action을 GPT에 입력(gpt api는 이전 대회를 기억하지 못함)
     response = client.chat.completions.create( # 해당 요청과 model은 legacy 모델이므로 현재 최신 방법과 좀 다르다.
-        model="gpt-3.5-turbo",
+        model="gpt-4",
         messages=[
             {"role": "system", "content": init_train_data},
             {"role": "user", "content": msg}
@@ -58,9 +52,9 @@ def infer_viewid(hierarchy, action):
 
         return key, function_name
     else:
-        key = ans_lst[0].split("=")[-1]
-        text = ans_lst[1].split("=")[-1]
-        function_name = ans_lst[2].split("=")[-1]
+        key = ans_lst[0].split("=")[-1].lstrip("{").rstrip("}")
+        text = ans_lst[1].split("=")[-1].lstrip("{").rstrip("}")
+        function_name = ans_lst[2].split("=")[-1].lstrip("{").rstrip("}")
         return key, function_name, text
 
 
@@ -145,11 +139,15 @@ def bulk_fail(index, length, scenario_id):
 
 # 화면 비교
 def ui_compare(ui_data, hierarchy):
+    print(ui_data)
+    print(hierarchy)
     for ui_key in ui_data.keys():
         screen = ui_data[ui_key].split(" ")[0]
         hierarchy_screen = hierarchy[ui_key].split(" ")[0]
 
         if screen != hierarchy_screen:
+            print(screen)
+            print(hierarchy_screen)
             return False
     return True
 

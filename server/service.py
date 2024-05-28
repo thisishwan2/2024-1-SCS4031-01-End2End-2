@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import time
 
 from bson import errors
 from bson.objectid import ObjectId
@@ -311,23 +312,18 @@ def run_scenario(scenario_id):
                 # adb 함수 수행
                 if len(result) == 2:
                     key, function_name = result
-
-                    if function_name == 'back' or function_name == 'home' or 'swipe' in function_name:
-                        execute_function(function_name)
-                    else:
-                        execute_function(function_name, key, serial_no)  # 문자열로 함수 실행
+                    execute_function(function_name, key)  # 문자열로 함수 실행
 
                 else:
-                    print("start")
                     key, text, function_name = result
-                    print(serial_no)
-                    execute_function(function_name, key, text, serial_no)  # 문자열로 함수 실행
+                    execute_function(function_name, key, text)  # 문자열로 함수 실행
 
                 # 새로운 화면에 대한 계층정보 추출 변환
-                vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
+                vc = ViewClient(*ViewClient.connectToDeviceOrExit())
                 vc.dump(window='-1', sleep=1)  # 현재 화면을 강제로 새로 고침
                 ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)
 
+                time.sleep(2)
 
                 ui = {}
                 transform(ui_list, ui)
@@ -342,6 +338,7 @@ def run_scenario(scenario_id):
                     )
 
                 else:
+                    print(Exception)
                     ui_compare_fail(index, scenario_id, scenario_list, scenario_seq)
                     return error_response()
 
@@ -364,8 +361,8 @@ def run_all_scenario():
         response = run_scenario(scenario_id)
         print(response.status_code)
 
-        adb_function.home()
-        adb_function.home()
+        adb_function.home(None)
+        adb_function.home(None)
 
 
     return jsonify({'message': 'Success'})

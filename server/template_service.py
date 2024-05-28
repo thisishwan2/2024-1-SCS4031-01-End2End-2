@@ -247,10 +247,10 @@ def run_template(template_id):
                     if function_name == 'back' or function_name == 'home' or 'swipe' in function_name:
                         execute_function(function_name)
                     else:
-                        execute_function(function_name, key, serial_no)  # 문자열로 함수 실행
+                        execute_function(function_name, key)  # 문자열로 함수 실행
 
                 # 새로운 화면에 대한 계층정보 추출 변환
-                vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
+                vc = ViewClient(*ViewClient.connectToDeviceOrExit())
                 vc.dump(window='-1', sleep=1)  # 현재 화면을 강제로 새로 고침
                 ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)
 
