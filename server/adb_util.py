@@ -8,7 +8,7 @@ import json
 import openai
 from openai import OpenAI
 from ppadb.client import Client as AdbClient
-from flask import request, jsonify, make_response
+from flask import request, jsonify, make_response, g
 from com.dtmilano.android.viewclient import ViewClient
 
 
@@ -38,7 +38,6 @@ def infer_viewid(hierarchy, action):
     # action을 GPT에 입력(gpt api는 이전 대회를 기억하지 못함)
     response = client.chat.completions.create( # 해당 요청과 model은 legacy 모델이므로 현재 최신 방법과 좀 다르다.
         model="gpt-3.5-turbo",
-        # model="ft:davinci-002:personal::9J3zU2Lo",
         messages=[
             {"role": "system", "content": init_train_data},
             {"role": "user", "content": msg}
@@ -46,7 +45,7 @@ def infer_viewid(hierarchy, action):
         max_tokens=50,
         temperature=0.5
     )
-    # print(response)
+
     answer = response.choices[0].message.content
     print(answer)
 
@@ -62,7 +61,8 @@ def infer_viewid(hierarchy, action):
         key = ans_lst[0].split("=")[-1]
         text = ans_lst[1].split("=")[-1]
         function_name = ans_lst[2].split("=")[-1]
-        return key, text, function_name
+        return key, function_name, text
+
 
 # 디바이스의 현재 화면 스크린샷
 def take_screenshot():
@@ -124,7 +124,7 @@ def start_adb_server():
 
 # 문자열로 받은 함수를 실행
 def execute_function(function_name, *args, **kwargs):
-    # file1 모듈의 함수를 동적으로 호출하면서, 인자와 키워드 인자 전달
+
     func = getattr(adb_function, function_name)
     func(*args, **kwargs)
 

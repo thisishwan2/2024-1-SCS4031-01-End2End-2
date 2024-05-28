@@ -5,15 +5,17 @@ import re
 from bson import errors
 from bson.objectid import ObjectId
 from pymongo import ReturnDocument
+from ppadb.client import Client as AdbClient
+
 
 from com.dtmilano.android.viewclient import ViewClient
-from flask import request, jsonify, make_response
+from flask import request, jsonify, make_response, g
 import xml.etree.ElementTree as elemTree
 import openai
 from openai import OpenAI
 
 from server.adb_util import ui_compare, ui_compare_fail, serial_no, device, execute_function, take_screenshot, \
-    error_response, test_recommand_route
+    error_response, test_recommand_route, infer_viewid
 from server.fine_tuning import init_train_data
 
 from server import adb_function
@@ -31,9 +33,8 @@ location = 'ap-northeast-2'
 
 client = openai.OpenAI(api_key=openai.api_key)
 
-# 시리얼 번호
-serial_no = serial_no
-device = device
+# # 시리얼 번호
+# device = device
 
 
 # 시나리오 리스트 조회
@@ -151,7 +152,7 @@ def transform(ui_list, ui_data):
 
 # 현재 계층 정보 추출 및 DB에 저장
 def extracted_hierarchy(scenario_id):
-    global serial_no
+    # global serial_no
 
     scenario_list = app.config['scenario']
 
@@ -213,6 +214,18 @@ def save_action(scenario_id):
 
 # 시나리오 실행
 def run_scenario(scenario_id):
+
+    client = AdbClient(host="127.0.0.1", port=5037)
+    devices = client.devices()
+
+    # 연결된 디바이스가 없는 경우
+    if not devices:
+        print("No devices found")
+        return error_response()
+
+    device = devices[0]
+    serial_no = device.serial
+
     scenario_list = app.config['scenario']
     scenario = scenario_list.find_one({'_id': ObjectId(scenario_id)})
 
@@ -304,6 +317,12 @@ def run_scenario(scenario_id):
                     else:
                         execute_function(function_name, key, serial_no)  # 문자열로 함수 실행
 
+                else:
+                    print("start")
+                    key, text, function_name = result
+                    print(serial_no)
+                    execute_function(function_name, key, text, serial_no)  # 문자열로 함수 실행
+
                 # 새로운 화면에 대한 계층정보 추출 변환
                 vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
                 vc.dump(window='-1', sleep=1)  # 현재 화면을 강제로 새로 고침
@@ -326,7 +345,8 @@ def run_scenario(scenario_id):
                     ui_compare_fail(index, scenario_id, scenario_list, scenario_seq)
                     return error_response()
 
-            except:
+            except Exception as e:
+                print(e)
                 ui_compare_fail(index, scenario_id, scenario_list, scenario_seq)
                 return error_response()
 
@@ -355,49 +375,6 @@ def delete_scenario(scenario_id):
     scenario_list.delete_one({'_id': ObjectId(scenario_id)})
 
     return jsonify({'message': 'Success'})
-
-
-# adb 함수 학습시켜서 응답으로 함수도 내보내게 해야하고, 응답 스키마도 설정해야함.
-def infer_viewid(hierarchy, action):
-    '''
-    action을 입력받아서 view id를 추론하는 함수
-    :param hierarchy: 계층 정보
-    :param action: 수행하고자 하는 action
-    :return: 추론된 view id, 실행할 함수
-    '''
-    # 계층정보를 문자열로 변환
-    hierarchy_info = json.dumps(hierarchy, indent=4, ensure_ascii=False)  # 보기 좋게 포맷팅
-
-    msg = "ui: \n" + hierarchy_info + "\naction: " + action
-
-    # action을 GPT에 입력(gpt api는 이전 대회를 기억하지 못함)
-    response = client.chat.completions.create( # 해당 요청과 model은 legacy 모델이므로 현재 최신 방법과 좀 다르다.
-        model="gpt-3.5-turbo",
-        # model="ft:davinci-002:personal::9J3zU2Lo",
-        messages=[
-            {"role": "system", "content": init_train_data},
-            {"role": "user", "content": msg}
-        ],
-        max_tokens=50,
-        temperature=0.5
-    )
-    # print(response)
-    answer = response.choices[0].message.content
-    print(answer)
-
-    ans_lst = answer.split(",")
-
-    # 응답 text가 없는 경우
-    if len(ans_lst)==2:
-        key = ans_lst[0].split("=")[-1]
-        function_name = ans_lst[1].split("=")[-1]
-
-        return key, function_name
-    else:
-        key = ans_lst[0].split("=")[-1]
-        text = ans_lst[1].split("=")[-1]
-        function_name = ans_lst[2].split("=")[-1]
-        return key, text, function_name
 
 def test():
     test_recommand_route()

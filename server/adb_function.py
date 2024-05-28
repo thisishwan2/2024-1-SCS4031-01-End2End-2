@@ -1,20 +1,27 @@
 import subprocess
+import time
 
-from service import vc
+from com.dtmilano.android.viewclient import ViewClient
 
-def find_by_id_touch(key):
+def find_by_id_touch(key,serial_no):
     print("id_touch")
+    vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
     vc.findViewById('id/no_id/'+key).touch()
 
-def find_by_text_touch(key):
-    print("text_touch")
-    vc.findViewWithText(key).touch()
+# def find_by_text_touch(key, serial_no):
+#     print("id_touch")
+#     vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
+#     vc.findViewById('id/no_id/' + key).touch()
 
-def find_by_id_touch_type(key, text):
-    vc.findViewById('id/no_id/' + key).type(text)
+def find_by_id_touch_type(key, text, serial_no):
+    print("typing")
 
-def find_by_text_touch_type(key, text):
-    vc.findViewWithText(key).type(text)
+    vc = ViewClient(*ViewClient.connectToDeviceOrExit())
+    vc.findViewById('id/no_id/' + key).touch()
+    # cmd = f"adb su -c shell input text \"{text}\""
+    # subprocess.run(cmd, shell=True)
+    cmd = f"adb -s {serial_no} shell input text \"{text}\""
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
 def back():
     print("back")
@@ -45,5 +52,3 @@ def swife_down_to_up():
     print("swipe up")
     cmd = "adb shell input swipe 500 500 500 1000 100"
     subprocess.run(cmd, shell=True)
-
-
