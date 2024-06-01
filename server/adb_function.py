@@ -29,9 +29,10 @@ def find_by_id_touch_type(key, text):
             parse_text = ""
             for i in split_text:
                 parse_text += i + "\ "
-            text = parse_text
 
-        cmd = "adb shell am broadcast -a ADB_INPUT_TEXT --es msg "+text
+            text = parse_text[:len(parse_text)-2]
+        print(text)
+        cmd = "adb shell am broadcast -a ADB_INPUT_TEXT --es msg "+ "\"" +text + "\""
         subprocess.run(cmd, shell=True)
 
         # 삼성 키패드로 변경
