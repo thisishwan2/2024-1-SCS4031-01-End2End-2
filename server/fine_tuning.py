@@ -48,6 +48,7 @@ action: 3점을 클릭해줘
 '위'로 '스와이프' 해달라고 하는 action일 경우 function에는 swipe_left_to_right, action=swipe_right_to_left, action=swipe_up_to_down, action=swipe_down_to_up 중 알맞는 함수를 응답합니다.
 '뒤'로 이동하라는 action일 경우 function=back을 반환하고,
 '홈'으로 이동하라는 action일 경우 function=home을 반환하면 됩니다. 즉, key=1,function=home 과 같이 반환합니다.
+절대 json 형태로 반환하지 마
 '''
 
 
