@@ -1,11 +1,6 @@
 import subprocess
-import time
-import os
 
 from com.dtmilano.android.viewclient import ViewClient
-from com.dtmilano.android.viewclient import EditText
-from ppadb.client import Client as AdbClient
-
 
 def find_by_id_touch(key):
     print("id_touch")
