@@ -23,6 +23,14 @@ def find_by_id_touch_type(key, text):
         # adb에는 한글 지원 이슈가 존재함. 따라서 adb 키보드를 다운받아서 사용한다.
         subprocess.run("adb shell ime set com.android.adbkeyboard/.AdbIME", shell=True)
 
+        # 공백은 다음과 같이 처리해야한다. "안녕하세\ 요"
+        split_text = text.split()
+        if len(split_text) >= 2:
+            parse_text = ""
+            for i in split_text:
+                parse_text += i + "\ "
+            text = parse_text
+
         cmd = "adb shell am broadcast -a ADB_INPUT_TEXT --es msg "+text
         subprocess.run(cmd, shell=True)
 
