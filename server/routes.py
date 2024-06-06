@@ -3,6 +3,7 @@ from flask_restx import Api, Resource, fields
 from server import app
 from server import template_service
 from server import adb_util
+from server import report_service
 
 api = Api(app, version='1.0', title='e2e API 문서', description='Swagger 문서', doc="/api-docs")
 e2e = api.namespace(name = "e2e", description='e2e API')
@@ -307,3 +308,19 @@ class run_template(Resource):
 class Test(Resource):
     def get(self):
         return service.test()
+
+
+# 보고서 목록 조회
+@e2e.route('/reports')
+class Reports(Resource):
+
+    def get(self):
+        return report_service.get_reports()
+
+# 보고서 상세 조회
+@e2e.route('/reports/<string:report_id>')
+class Report(Resource):
+     @api.response(200, 'Success')
+     @api.response(400, 'Error')
+     def get(self, report_id):
+         return report_service.get_report(report_id)

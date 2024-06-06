@@ -13,6 +13,8 @@ client = MongoClient(host='localhost', port=27017)
 db = client['e2e_database']
 scenario= db.scenario_collection
 template = db.template_collection
+report = db.report_collection
 
 app.config['scenario'] = db.scenario_collection
 app.config['template'] = db.template_collection
+app.config['report'] = db.report_collection

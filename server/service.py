@@ -356,13 +356,61 @@ def run_scenario(scenario_id):
 # 전체 시나리오 실행
 def run_all_scenario():
     scenario_list = app.config['scenario']
+    report_list = app.config['report']
+    report_name = request.json['report_name']
+    # report_dict = {"report_name": report_name}
+    report_dict = {
+        "report_name": report_name,
+        "fail_report": [],
+        "create_at": time.strftime('%Y-%m-%d %H:%M:%S')
+    }
+    report = report_list.insert_one(report_dict)
+    report_obj_id = report_dict["_id"]
+    report_obj_id = str(report_obj_id)
+
     for scenario in scenario_list.find():
         scenario_id = str(scenario.get('_id'))
-        response = run_scenario(scenario_id)
+        response = run_scenario_report(scenario_id, report_obj_id)
         print(response.status_code)
 
         adb_function.home(None)
         adb_function.home(None)
+
+
+    # 시나리오 전체 조회하고, 요약 보고서 생성
+    all_scenario = scenario_list.find()
+    success_scenario_cnt = 0 # 성공한 시나리오 개수
+    fail_scenario_cnt = 0 # 실패한 시나리오 개수
+    running_scenario_cnt = 0 # 실행한 시나리오 개수
+
+    for scenario in all_scenario:
+        if scenario.get("run_status") == "success":
+            success_scenario_cnt+=1
+            running_scenario_cnt+=1
+        elif scenario.get("run_status") == "fail":
+            fail_scenario_cnt+=1
+            running_scenario_cnt+=1
+        elif scenario.get("run_status") == "loading":
+            pass
+
+    pass_fail_per = success_scenario_cnt / running_scenario_cnt # 성공/실패 비율
+    success_all_per = success_scenario_cnt / running_scenario_cnt  # 성공률
+
+    summary_result = {
+        "success_scenario_cnt" : success_scenario_cnt,
+        "fail_scenario_cnt" : fail_scenario_cnt,
+        "running_scenario_cnt" : running_scenario_cnt,
+        "pass_fail_per" : pass_fail_per,
+        "success_all_per" : success_all_per
+    }
+
+    # 도큐멘트 조회
+    document = report_list.find_one({'_id': ObjectId(report_obj_id)})
+
+    # 찾은 document에 데이터 추가
+    document.update(summary_result)
+    # 컬렉션 업데이트
+    report_list.update_one({"_id": ObjectId(report_obj_id)}, {"$set": document})
 
 
     return jsonify({'message': 'Success'})
@@ -375,3 +423,170 @@ def delete_scenario(scenario_id):
 
 def test():
     test_recommand_route()
+
+
+
+# 시나리오 실행
+def run_scenario_report(scenario_id, report_obj_id):
+
+    client = AdbClient(host="127.0.0.1", port=5037)
+    devices = client.devices()
+
+    # 연결된 디바이스가 없는 경우
+    if not devices:
+        print("No devices found")
+        return error_response()
+
+    device = devices[0]
+    serial_no = device.serial
+
+    scenario_list = app.config['scenario']
+    report_list = app.config['report']
+
+    scenario = scenario_list.find_one({'_id': ObjectId(scenario_id)})
+    report = report_list.find_one({'_id': ObjectId(report_obj_id)})
+
+    before_hierarchy = None
+    now_index = 0
+    scenario_seq = scenario['scenario']  # 시나리오 순서 추출(화면-액션-화면-액션...)
+
+
+    # 전체 status 로딩으로 처리
+    scenario_list.update_one(
+        {'_id': ObjectId(scenario_id)},
+        {'$set': {'run_status': 'loading'}}
+    )
+
+    # 모든 태스크를 로딩으로 처리
+    for i in range(len(scenario_seq)):
+        scenario_list.update_one(
+            {'_id': ObjectId(scenario_id)},
+            {'$set': {f'scenario.{i}.status': 'ready'}}
+        )
+
+    try:
+        start = scenario_seq[0]
+        start_hierarchy = start['ui_data']
+        start_status = start['status']
+        before_hierarchy = start_hierarchy
+
+        # loading 처리
+        scenario_list.update_one(
+            {'_id': ObjectId(scenario_id)},
+            {'$set': {'scenario.0.status': 'loading'}}
+        )
+
+        # 현재 화면 추출 및 변환
+        vc = ViewClient(*ViewClient.connectToDeviceOrExit(serialno=serial_no))
+        ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)
+        ui_data = {}
+        transform(ui_list, ui_data)
+        # 시작화면과 현재 화면이 같은지 비교(홈화면 기준으로 시간이 조금만 달라도 계층정보가 다르다고 판단함)
+        if(ui_compare(ui_data, before_hierarchy)):
+            # 시작은 성공
+            scenario_list.update_one(
+                {'_id': ObjectId(scenario_id)},
+                {'$set': {'scenario.0.status': 'success'}}
+            )
+
+        else: # 다른화면인 경우
+            ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
+            return error_response()
+    except Exception as e:
+        # 첫 화면에서 실패했다면 모든 태스크는 실패 처리
+        ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
+        return error_response()
+    result = None
+    # 이후 태스크 실행 및 검증
+    for index in range(1, len(scenario_seq)):
+        # loading 처리
+        scenario_list.update_one(
+            {'_id': ObjectId(scenario_id)},
+            {'$set': {f'scenario.{index}.status': 'loading'}}
+        )
+
+        # 액션 검증
+        if index%2==1:
+            try:
+                action_cmd = scenario_seq[index]['action']
+                # action_status = scenario_seq[i]['status']
+                # 문제없이 액션 값을 받아오면 성공
+                result = infer_viewid(before_hierarchy, action_cmd)
+
+                scenario_list.update_one(
+                    {'_id': ObjectId(scenario_id)},
+                    {'$set': {f'scenario.{index}.status': 'success'}}
+                )
+            except:
+                ui_compare_fail(index, scenario_id, scenario_list, scenario_seq)
+                return error_response()
+
+        # 화면 검증(여기서 부터 수정해야 함. abd function쪽 수정과 같이 하기)
+        elif index%2==0:
+            try:
+                after_hierarchy = scenario_seq[index]['ui_data']
+
+                # adb 함수 수행
+                if len(result) == 2:
+                    key, function_name = result
+                    execute_function(function_name, key)  # 문자열로 함수 실행
+
+                else:
+                    key, text, function_name = result
+                    execute_function(function_name, key, text)  # 문자열로 함수 실행
+
+                # 새로운 화면에 대한 계층정보 추출 변환
+                vc = ViewClient(*ViewClient.connectToDeviceOrExit())
+                vc.dump(window='-1', sleep=1)  # 현재 화면을 강제로 새로 고침
+                ui_list = vc.traverse_to_list(transform=vc.traverseShowClassIdTextAndUniqueId)
+
+                ui = {}
+                transform(ui_list, ui)
+
+                # 새로운 화면과 계층정보가 동일하면 성공
+                # 시작화면과 현재 화면이 같은지 비교(홈화면 기준으로 시간이 조금만 달라도 계층정보가 다르다고 판단함)
+                if (ui_compare(ui, after_hierarchy)):
+                    scenario_list.update_one(
+                        {'_id': ObjectId(scenario_id)},
+                        {'$set': {f'scenario.{index}.status': 'success'}}
+                    )
+
+                    before_hierarchy = after_hierarchy
+
+                else:
+                    print(Exception)
+                    ui_compare_fail(index, scenario_id, scenario_list, scenario_seq) # 현재 인덱스
+
+                    # 실제 시나리오와 다른 새로운 화면에 대해 스크린샷
+                    screenshot_dir = take_screenshot()
+                    screenshot_url = s3_put_object(screenshot_dir)
+
+                    # index-2, index-1, index db에서 가져온거랑
+                    existing_new_screen = scenario_seq[index] # 기존 new 화면
+                    existing_action = scenario_seq[index-1] # 기존 action
+                    existing_old_screen = scenario_seq[index-2] # 기존 old 화면
+
+                    fail_report={
+                        "scenario_name": scenario['scenario_name'],
+                        "existing_old_screen": existing_old_screen["screenshot_url"],
+                        "existing_action": existing_action["action"],
+                        "existing_new_screen": existing_new_screen["screenshot_url"],
+                        "fail_new_screen": screenshot_url
+                    }
+
+                    report_list.update_one(
+                        {'_id': ObjectId(report_obj_id)},
+                        {'$push': {'fail_report': fail_report}}
+                    )
+                    return error_response()
+
+            except Exception as e:
+                print(e)
+                ui_compare_fail(index, scenario_id, scenario_list, scenario_seq)
+                return error_response()
+
+    scenario_list.update_one(
+        {'_id': ObjectId(scenario_id)},
+        {'$set': {'run_status': 'success'}}
+    )
+    return jsonify({'message': 'Success'})
