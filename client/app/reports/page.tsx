@@ -29,12 +29,14 @@ export default function Home() {
   const router = useRouter()
   const theme = useTheme();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const {data: reportList } = useQuery<{_id:string, report_name:string, run_status:string}[]>({queryKey: ['reports'], queryFn: async () => {
+  const {data } = useQuery<{_id:string, report_name:string, created_at:string}[]>({queryKey: ['reports'], queryFn: async () => {
       const data = await fetch('http://127.0.0.1:5000/e2e/reports');
       return data.json();
     }, 
     refetchInterval: 10000
   });
+
+  const reportList = [{_id:"1", report_name:"report1", created_at:"2021-10-10"},{_id:"2", report_name:"report2", created_at:"2021-10-11"}];
 
 
 
@@ -53,15 +55,12 @@ export default function Home() {
         <Typography variant="h5" noWrap component="div">
             테스트 리포트
         </Typography>
-        <Box display="flex" justifyContent="flex-end" padding="20px" gap="20px">           
-          <Button color="primary" variant='contained' onClick={handleReportAdd}>리포트 추가</Button>
-        </Box>
         <TableContainer component={Paper}>
       <Table sx={{ minWidth: 650 }} aria-label="simple table">
         <TableHead>
           <TableRow>
             <TableCell align="center">리포트 이름</TableCell>
-            <TableCell align="center">관리</TableCell>
+            <TableCell align="center">테스트 실행일자</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -69,18 +68,17 @@ export default function Home() {
             <TableRow
               key={report._id}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+              hover
+              onClick={() => {
+                router.push(`/reports/${report._id}`);
+              }}
             >
               <TableCell align="center" component="th" scope="row">
                 {report.report_name}
               </TableCell>
 
               <TableCell align="center" >
-                <Box display="flex" gap="20px" justifyContent="center">
-                  <Button color="primary" variant="contained" onClick={() => {
-                    router.push(`/reports/${report._id}`)
-                  }}>수정</Button>
-                  <Button color="error" variant="contained">삭제</Button>
-                </Box>
+                {report.created_at}
               </TableCell>
             </TableRow>
           ))}
@@ -90,45 +88,6 @@ export default function Home() {
     
       </Box>
     </Box>
-    <AddDialog open={isModalOpen} onClose={() => {setIsModalOpen(false)}}/>
     </>
   );
 }
-interface DialogProps {
-  open: boolean;
-  onClose: () => void;
-}
-
-const AddDialog:React.FC<DialogProps> = ({open, onClose}) => {
-  const queryClient= useQueryClient();
-
-  const { mutate } = useMutation({"mutationFn": async (name: string) => {
-    await axios.post("http://127.0.0.1:5000/e2e/reports",{report_name: name});
-  }});
-  const [name, setName] = useState("");
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setName(e.target.value);
-  }
-  const handleAdd = () => {
-    mutate(name,{
-      onSuccess:() => {
-        queryClient.invalidateQueries({queryKey: ['reports']})
-        onClose();
-      }
-    })
-  }
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="xl" sx={{padding:"20px"}} >
-      <DialogTitle>리포트 추가</DialogTitle>
-      <Box padding="20px" width="400px">
-        <TextField label="리포트 이름" fullWidth onChange={handleChange} value={name}/>
-      </Box>
-      <DialogActions>
-        <Button disabled={!name} variant="contained" color="primary" onClick={handleAdd}>추가</Button>
-        <Button variant="contained" color="error" onClick={onClose}>취소</Button>
-      </DialogActions>
-    </Dialog>
-  )
-
-}
-
