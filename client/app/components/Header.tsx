@@ -27,7 +27,7 @@ const Header = () => {
     <Toolbar>
       <E2eSpaceIcon />
       <List sx={{display:"flex",marginLeft:"30px" }}>
-      {[{text: '시나리오 관리',href: "/"},{text: '템플릿 관리',href: "/templates"}].map(({text,href}, index) =>{
+      {[{text: '시나리오 관리',href: "/"},{text: '템플릿 관리',href: "/templates"},{text: '테스트 리포트',href: "/reports"}].map(({text,href}, index) =>{
         return (
         <ListItem key={text} disablePadding sx={{whiteSpace:"nowrap"}}>
           <Box sx={{padding:"8px 16px"}}>
