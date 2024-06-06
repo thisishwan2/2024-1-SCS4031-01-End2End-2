@@ -22,8 +22,8 @@ import SelectInput from "@mui/material/Select/SelectInput";
 export default function Home() {
   const router = useRouter()
   const theme = useTheme();
-  const [open, setOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRunModalOpen, setIsRunModalOpen] = useState(false);
   const queryClient = useQueryClient();
   const {data: scenarioList } = useQuery<{_id:string, scenario_name:string, run_status:string}[]>({queryKey: ['scenarios'], queryFn: async () => {
     const data = await fetch('http://127.0.0.1:5000/e2e/scenarios');
@@ -35,30 +35,15 @@ export default function Home() {
 
 
 
-  const {mutate:postRunAll, isPending:isRunPending} = useMutation({mutationFn: async () => {
-    return axios.post(`http://127.0.0.1:5000/e2e/scenarios/run-all`);
-  },
-  onSuccess:() => {
-    queryClient.invalidateQueries({queryKey: ['scenarios']})
-  }
-},);
-
 
 
   const handleScenarioAdd = () => {
     setIsModalOpen(true);
   }
 
-  const handleDrawerOpen = () => {
-    setOpen(true);
-  };
-
-  const handleDrawerClose = () => {
-    setOpen(false);
-  };
 
   const handleScenarioRunAll = () => {
-    postRunAll()
+    setIsRunModalOpen(true)
   }
 
 
@@ -75,7 +60,7 @@ export default function Home() {
             시나리오 목록
         </Typography>
         <Box display="flex" justifyContent="flex-end" padding="20px" gap="20px"> 
-          <Button color="primary" variant="outlined" disabled={isRunPending} onClick={handleScenarioRunAll}>시나리오 전체 실행</Button>
+          <Button color="primary" variant="outlined" onClick={handleScenarioRunAll}>시나리오 전체 실행</Button>
 
           <Button color="primary" variant='contained' onClick={handleScenarioAdd}>시나리오 추가</Button>
         </Box>
@@ -115,6 +100,7 @@ export default function Home() {
       </Box>
     </Box>
     <AddDialog open={isModalOpen} onClose={() => {setIsModalOpen(false)}}/>
+    <RunDialog open={isRunModalOpen} onClose={() => setIsRunModalOpen(false)}/>
     </>
   );
 }
@@ -164,6 +150,43 @@ const AddDialog:React.FC<DialogProps> = ({open, onClose}) => {
       </Box>
       <DialogActions>
         <Button disabled={!name} variant="contained" color="primary" onClick={handleAdd}>추가</Button>
+        <Button variant="contained" color="error" onClick={onClose}>취소</Button>
+      </DialogActions>
+    </Dialog>
+  )
+
+}
+
+const RunDialog:React.FC<DialogProps> = ({open, onClose}) => {
+  const queryClient= useQueryClient();
+
+  const {mutate:postRunAll, isPending:isRunPending} = useMutation({mutationFn: async (name:string) => {
+    return axios.post(`http://127.0.0.1:5000/e2e/scenarios/run-all`,{report_name: name});
+  },
+  onSuccess:() => {
+    queryClient.invalidateQueries({queryKey: ['scenarios']})
+  }
+},);
+  const [name, setName] = useState("");
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value);
+  }
+  const handleRun = () => {
+    postRunAll(name, {
+      onSuccess:() => {
+        queryClient.invalidateQueries({queryKey: ['scenarios']})
+        onClose();
+      }
+    })
+  }
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="xl" sx={{padding:"20px"}} >
+      <DialogTitle>리포트 이름 입력</DialogTitle>
+      <Box padding="20px" width="400px">
+        <TextField label="리포트 이름" placeholder="ex) 2024-05-18 통합 QA" fullWidth onChange={handleChange} value={name}/>
+      </Box>
+      <DialogActions>
+        <Button disabled={!name} variant="contained" color="primary" onClick={handleRun}>전체 실행</Button>
         <Button variant="contained" color="error" onClick={onClose}>취소</Button>
       </DialogActions>
     </Dialog>
