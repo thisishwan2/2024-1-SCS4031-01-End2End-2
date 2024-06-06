@@ -114,6 +114,39 @@ run_template_response_model = api.model('RunTemplateResponse', {
     'result': fields.String(description='템플릿 실행 결과', required=True, example='success')
 })
 
+
+
+
+report_model = api.model('Report', {
+    '_id': fields.String(description='보고서 ID', required=True, example='6661937b749b05a86349c80c'),
+    'report_name': fields.String(description='보고서 이름', required=True, example='보고서 1번')
+})
+
+report_list_response_model = api.model('RunScenarioResponse', {
+    'result': fields.List(fields.Nested(report_model), description='시나리오 실행 결과', required=True)
+})
+
+fail_report_model = api.model('FailReport', {
+    'existing_action': fields.String(description='기존 액션', required=True),
+    'existing_new_screen': fields.String(description='기존 새로운 화면', required=True),
+    'existing_old_screen': fields.String(description='기존 이전 화면', required=True),
+    'fail_new_screen': fields.String(description='실패한 새로운 화면', required=True),
+    'scenario_name': fields.String(description='시나리오 이름', required=True)
+})
+
+report_detail_response_model = api.model('RunScenarioResponse', {
+    '_id': fields.String(description='보고서 ID', required=True),
+    'create_at': fields.String(description='보고서 생성 일시', required=True),
+    'fail_report': fields.List(fields.Nested(fail_report_model), description='실패 보고서', required=True),
+    'fail_scenario_cnt': fields.Integer(description='실패 시나리오 개수', required=True),
+    'pass_fail_per': fields.Float(description='성공/실패 비율', required=True),
+    'report_name': fields.String(description='보고서 이름', required=True),
+    'running_scenario_cnt': fields.Integer(description='실행된 시나리오 개수', required=True),
+    'success_all_per': fields.Float(description='전체 성공률', required=True),
+    'success_scenario_cnt': fields.Integer(description='성공한 시나리오 개수', required=True)
+})
+
+
 # 디바이스 연결 확인
 @e2e.route('/device-connection')
 class adb_connect(Resource):
@@ -314,13 +347,14 @@ class Test(Resource):
 @e2e.route('/reports')
 class Reports(Resource):
 
+    @api.response(200, "Success", report_list_response_model)
     def get(self):
         return report_service.get_reports()
 
 # 보고서 상세 조회
 @e2e.route('/reports/<string:report_id>')
 class Report(Resource):
-     @api.response(200, 'Success')
+     @api.response(200, "Success", report_detail_response_model)
      @api.response(400, 'Error')
      def get(self, report_id):
          return report_service.get_report(report_id)
