@@ -12,7 +12,7 @@ import image2 from '../guide2.png';
 export default function Guide() {
   return (
     <div style={{marginTop:"40px"}}>
-      <Typography variant='h5'>시나리오 생성 가이드</Typography>
+      <Typography variant='h6' marginBottom="20px">시나리오 생성 가이드</Typography>
       <Accordion>
         <AccordionSummary
           expandIcon={<ArrowDownwardIcon />}

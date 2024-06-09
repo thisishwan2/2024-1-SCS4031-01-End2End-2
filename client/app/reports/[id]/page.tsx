@@ -1,5 +1,5 @@
 'use client'
-import { Box, Button, CircularProgress, CssBaseline, TextField, Typography, useTheme } from "@mui/material";
+import { Box, Button, CircularProgress, CssBaseline, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography, useTheme } from "@mui/material";
 
 import { useEffect, useState } from "react";
 
@@ -10,67 +10,58 @@ import Image from "next/image";
 import { BlockOutlined, CancelOutlined, CheckCircleOutline, CircleOutlined,  } from "@mui/icons-material";
 import Guide from "@/app/components/Guide";
 
+interface Report {
+  _id: string;
+  create_at: string;
+  fail_report: FailReport[];
+  fail_scenario_cnt: number;
+  pass_fail_per: number;
+  report_name: string;
+  running_scenario_cnt: number;
+  success_all_per: number;
+  success_scenario_cnt: number;
+}
 
+interface FailReport {
+  existing_action: string;
+  existing_new_screen: string;
+  existing_old_screen: string;
+  fail_new_screen: string;
+  scenario_name: string;
+}
 
 export default function Home() {
   const {id} = useParams();
-  const router= useRouter();
-  const queryClient= useQueryClient();
-  const [shouldPolling, setShouldPolling] = useState(false);
-  const {data: reportDetail} = useQuery({queryKey: ['reports', 'detail', id], queryFn: async ()=> {
-      const response =  await axios.get<{
-          _id: string;
-          run_status: string;
-          report_name: string;
-          report: {screenshot_url?:string; ui_data?: string; status?:string; action?:string}[]
-      }>(`http://127.0.0.1:5000/e2e/reports/${id}`);
+  const {data} = useQuery({queryKey: ['reports', 'detail', id], queryFn: async ()=> {
+      const response =  await axios.get<Report>(`http://127.0.0.1:5000/e2e/reports/${id}`);
       return response.data;
     },  
-    refetchInterval: shouldPolling ? 1000 : undefined
-  })
-
-  useEffect(() => {
-    if(reportDetail) {
-      if(reportDetail.run_status === "loading"){
-        setShouldPolling(true);
-      } else {
-        setShouldPolling(false);
+  });
+  // default mock data
+  const reportDetail = data || { 
+    _id: "1",
+    create_at: "2021-10-10",
+    fail_report: [
+      {
+        existing_action: "action1",
+        existing_new_screen: "new_screen1",
+        existing_old_screen: "old_screen1",
+        fail_new_screen: "fail_new_screen1",
+        scenario_name: "scenario1"
       }
-    }
-  },[reportDetail])
+    ],
+    fail_scenario_cnt: 1,
+    pass_fail_per: 0,
+    report_name: "report1",
+    running_scenario_cnt: 1,
+    success_all_per: 0,
+    success_scenario_cnt: 0
+  };
+  
 
 
-  const {mutate: posthierarchy} = useMutation({mutationFn: async ({index}: {index: number}) => {
-    return axios.post(`http://127.0.0.1:5000/e2e/reports/${id}/hierarchy`, {index: String(index)});
-  }});
-  const {mutate: postAction} = useMutation({mutationFn: async ({index,action}: {index: number, action:string}) => {
-    return axios.post(`http://127.0.0.1:5000/e2e/reports/${id}/action`, {index: String(index), action});
-  }});
-  const {mutate:postRun, isPending:isRunPending} = useMutation({mutationFn: async () => {
-    return axios.post(`http://127.0.0.1:5000/e2e/reports/${id}/run`);
-  },
-  onSuccess: () => {
-    queryClient.invalidateQueries({queryKey: ['reports']});
-  }
-});
-
-  const {mutate: postTask, isPending} = useMutation({ mutationFn: () => axios.post(`http://127.0.0.1:5000/e2e/reports/tasks`,{ object_id: id}), onSuccess:()=> {
-    queryClient.invalidateQueries({queryKey: ['reports']});
-  } })
   const theme = useTheme();
 
-
-  const handlehierarchyButtonClick = (index: number) => () => {
-    posthierarchy({index}, {onSuccess:()=> {
-      queryClient.invalidateQueries({queryKey: ['reports', 'detail', id]})
-    }});
-  }
-
-  const handleActionButtonClick = (index: number) => (action:string) => {
-    postAction({index,action}, {onSuccess:()=> {
-      queryClient.invalidateQueries({queryKey: ['reports', 'detail', id]})
-    }});
-  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection:"column" }}>
@@ -82,30 +73,41 @@ export default function Home() {
                 <Typography variant="h5" margin="0">
                   {reportDetail?.report_name}
                 </Typography>
-                <Button onClick={() =>{
-                  postRun();
-                  setShouldPolling(true);
-                }}
-                disabled={isRunPending || reportDetail?.run_status==="loading"}
-                >
-                  템플릿 실행
-                </Button>
-                <StatusIcon status={reportDetail?.run_status}/>
+
               </Box>
+                <Typography variant="h6" margin="0">
+                  테스트 요약
+                </Typography>
+                
+                <Table>
+                  {/* 테스트 성공률, 실행된 시나리오 수, 통과한 시나리오 수, 실패한 시나리오 수 */}
+                  <TableHead>
+                  <TableRow>
+                    <TableCell>테스트 성공률</TableCell>
+                    <TableCell>실행된 시나리오 수</TableCell>
+                    <TableCell>통과한 시나리오 수</TableCell>
+                    <TableCell>실패한 시나리오 수</TableCell>
+                  </TableRow>
+                  </TableHead>
+                  <TableBody>
+                  <TableRow>
+                    <TableCell>
+                    {reportDetail?.success_all_per}%
+                    </TableCell>
+                    <TableCell>
+                    {reportDetail?.running_scenario_cnt}
+                    </TableCell>
+                    <TableCell>
+                    {reportDetail?.success_scenario_cnt}
+                    </TableCell>
+                    <TableCell>
+                    {reportDetail?.fail_scenario_cnt}
+                    </TableCell>
+                  </TableRow>
+                  </TableBody>
+                </Table>
               <Box display="flex" gap="40px" alignItems="center" marginBottom="40px">
-              {reportDetail?.report?.map((item,index) => item.ui_data !== undefined 
-               ? (<Box key={item.ui_data|| index}  padding="5px"borderRadius="10px"bgcolor="#F8DEDE" width="200px" height="300px" display="flex" flexDirection="column" gap="10px"position="relative">
-                <StatusIcon status={item.status}/>
-                <Button variant="contained" onClick={handlehierarchyButtonClick(index)} sx={{position:"absolute", bottom: '-50px', left: "50%", transform: "translateX(-50%)", whiteSpace:"nowrap"}}>
-                  화면정보등록
-                  </Button>
-                  {(item.screenshot_url) && <Box sx={{height:"calc(100% - 20px)", position:"relative"}}><Image fill  src={item.screenshot_url} alt="화면 이미지"/></Box>}
-                </Box>):
-                <ActionBox key={index} action={item.action} status={item.status} onClick={handleActionButtonClick(index)}/>
-              )}
-              <Button variant="contained" disabled={isPending} onClick={() => {
-                  postTask();
-              }}>추가</Button>   
+
             </Box>
           </>
       </Box>
