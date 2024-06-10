@@ -91,24 +91,24 @@ export default function Home() {
                   {/* 테스트 성공률, 실행된 시나리오 수, 통과한 시나리오 수, 실패한 시나리오 수 */}
                   <TableHead>
                   <TableRow>
-                    <TableCell>테스트 성공률</TableCell>
-                    <TableCell>실행된 시나리오 수</TableCell>
-                    <TableCell>통과한 시나리오 수</TableCell>
-                    <TableCell>실패한 시나리오 수</TableCell>
+                    <TableCell align="center">테스트 성공률</TableCell>
+                    <TableCell align="center">실행된 시나리오 수</TableCell>
+                    <TableCell align="center">통과한 시나리오 수</TableCell>
+                    <TableCell align="center">실패한 시나리오 수</TableCell>
                   </TableRow>
                   </TableHead>
                   <TableBody>
                   <TableRow>
-                    <TableCell>
+                    <TableCell align="center">
                     {reportDetail?.success_all_per}%
-                    </TableCell>
-                    <TableCell>
+                    </TableCell >
+                    <TableCell align="center">
                     {reportDetail?.running_scenario_cnt}
                     </TableCell>
-                    <TableCell>
+                    <TableCell align="center">
                     {reportDetail?.success_scenario_cnt}
                     </TableCell>
-                    <TableCell>
+                    <TableCell align="center">
                     {reportDetail?.fail_scenario_cnt}
                     </TableCell>
                   </TableRow>
