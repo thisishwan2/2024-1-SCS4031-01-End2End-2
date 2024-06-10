@@ -1,5 +1,5 @@
 'use client'
-import { Box, Button, CircularProgress, CssBaseline, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography, useTheme } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Box, Button, CircularProgress, CssBaseline, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography, useTheme } from "@mui/material";
 
 import { useEffect, useState } from "react";
 
@@ -9,7 +9,8 @@ import axios from "axios";
 import Image from "next/image";
 import { BlockOutlined, CancelOutlined, CheckCircleOutline, CircleOutlined,  } from "@mui/icons-material";
 import Guide from "@/app/components/Guide";
-
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 interface Report {
   _id: string;
   create_at: string;
@@ -44,10 +45,17 @@ export default function Home() {
     fail_report: [
       {
         existing_action: "action1",
-        existing_new_screen: "new_screen1",
-        existing_old_screen: "old_screen1",
-        fail_new_screen: "fail_new_screen1",
+        existing_new_screen: "https://endtwoend.s3.ap-northeast-2.amazonaws.com/screenshot_12_48_07.png",
+        existing_old_screen: "https://endtwoend.s3.ap-northeast-2.amazonaws.com/screenshot_12_48_07.png",
+        fail_new_screen: "https://endtwoend.s3.ap-northeast-2.amazonaws.com/screenshot_12_48_07.png",
         scenario_name: "scenario1"
+      },
+      {
+        existing_action: "action2",
+        existing_new_screen: "https://endtwoend.s3.ap-northeast-2.amazonaws.com/screenshot_12_48_07.png",
+        existing_old_screen: "https://endtwoend.s3.ap-northeast-2.amazonaws.com/screenshot_12_48_07.png",
+        fail_new_screen: "https://endtwoend.s3.ap-northeast-2.amazonaws.com/screenshot_12_48_07.png",
+        scenario_name: "scenario2"
       }
     ],
     fail_scenario_cnt: 1,
@@ -111,7 +119,63 @@ export default function Home() {
             </Box>
           </>
       </Box>
-      <Guide/>
+      <div style={{marginTop:"40px"}}>
+      <Typography variant='h6' marginBottom="20px">실패 케이스 요약</Typography>
+      {
+        reportDetail.fail_report.map((failReport, index) => {
+          return <Accordion key={failReport.scenario_name}>
+          <AccordionSummary
+            expandIcon={<ArrowDownwardIcon />}
+            aria-controls="panel1-content"
+            id="panel1-header"
+          >
+            <Typography>{failReport.scenario_name}</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+          <Table>
+                  {/* 테스트 성공률, 실행된 시나리오 수, 통과한 시나리오 수, 실패한 시나리오 수 */}
+                  <TableHead>
+                  <TableRow>
+                    <TableCell align="center">기존 화면</TableCell>
+                    <TableCell align="center">액션</TableCell>
+                    <TableCell align="center">기대 결과</TableCell>
+                    <TableCell align="center">실제 결과</TableCell>
+                  </TableRow>
+                  </TableHead>
+                  <TableBody>
+                  <TableRow>
+                    <TableCell align="center" sx={{display:"flex", justifyContent:"center"}}>
+                    <Box   padding="5px"borderRadius="10px" width="200px" height="300px" display="flex" flexDirection="column" gap="10px"position="relative">
+                     {(failReport.existing_old_screen) && <Box sx={{height:"calc(100% - 20px)", position:"relative"}}><Image fill src={failReport.existing_old_screen} alt="화면 이미지"/></Box>}
+                   </Box>
+                    </TableCell>
+                    <TableCell align="center" >
+                    {failReport.existing_action}
+                    </TableCell>
+                    <TableCell align="center"  sx={{display:"flex", justifyContent:"center"}}>
+                    <Box   padding="5px"borderRadius="10px" width="200px" height="300px" display="flex" flexDirection="column" gap="10px"position="relative">
+                     {(failReport.existing_new_screen) && <Box sx={{height:"calc(100% - 20px)", position:"relative"}}><Image fill src={failReport.existing_new_screen} alt="화면 이미지"/></Box>}
+                   </Box>
+                    </TableCell>
+                    <TableCell align="center" >
+                      <Box sx={{display:"flex", justifyContent:"center"}}>
+
+                    <Box   padding="5px"borderRadius="10px" width="200px" height="300px" display="flex" flexDirection="column" gap="10px"position="relative">
+                     {(failReport.fail_new_screen) && <Box sx={{height:"calc(100% - 20px)", position:"relative"}}><Image fill src={failReport.fail_new_screen} alt="화면 이미지"/></Box>}
+                   </Box>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                  </TableBody>
+                </Table>
+          </AccordionDetails>
+        </Accordion>
+        })
+        }
+      
+      
+     
+    </div>
     </Box>
   );
 }

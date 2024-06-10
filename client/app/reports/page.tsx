@@ -36,7 +36,7 @@ export default function Home() {
     refetchInterval: 10000
   });
 
-  const reportList = [{_id:"1", report_name:"report1", created_at:"2021-10-10"},{_id:"2", report_name:"report2", created_at:"2021-10-11"}];
+  const reportList = data || [{_id:"1", report_name:"report1", created_at:"2021-10-10"},{_id:"2", report_name:"report2", created_at:"2021-10-11"}];
 
 
 
