@@ -119,7 +119,7 @@ export default function Home() {
             </Box>
           </>
       </Box>
-      <div style={{marginTop:"40px"}}>
+      <div style={{marginTop:"40px",paddingLeft:"20px"}}>
       <Typography variant='h6' marginBottom="20px">실패 케이스 요약</Typography>
       {
         reportDetail.fail_report.map((failReport, index) => {
