@@ -145,7 +145,7 @@ export default function Home() {
                   <TableBody>
                   <TableRow>
                     <TableCell align="center" sx={{display:"flex", justifyContent:"center"}}>
-                    <Box   padding="5px"borderRadius="10px" width="200px" height="300px" display="flex" flexDirection="column" gap="10px"position="relative">
+                    <Box   padding="5px"borderRadius="10px" width="200px" height="300px" display="flex" bgcolor="lightgray"  justifyContent="center" flexDirection="column" gap="10px"position="relative">
                      {(failReport.existing_old_screen) && <Box sx={{height:"calc(100% - 20px)", position:"relative"}}><Image fill src={failReport.existing_old_screen} alt="화면 이미지"/></Box>}
                    </Box>
                     </TableCell>
@@ -153,14 +153,14 @@ export default function Home() {
                     {failReport.existing_action}
                     </TableCell>
                     <TableCell align="center"  sx={{display:"flex", justifyContent:"center"}}>
-                    <Box   padding="5px"borderRadius="10px" width="200px" height="300px" display="flex" flexDirection="column" gap="10px"position="relative">
+                    <Box   padding="5px"borderRadius="10px" width="200px" height="300px" display="flex" bgcolor="lightgreen"  justifyContent="center" flexDirection="column" gap="10px"position="relative">
                      {(failReport.existing_new_screen) && <Box sx={{height:"calc(100% - 20px)", position:"relative"}}><Image fill src={failReport.existing_new_screen} alt="화면 이미지"/></Box>}
                    </Box>
                     </TableCell>
                     <TableCell align="center" >
                       <Box sx={{display:"flex", justifyContent:"center"}}>
 
-                    <Box   padding="5px"borderRadius="10px" width="200px" height="300px" display="flex" flexDirection="column" gap="10px"position="relative">
+                    <Box   padding="5px"borderRadius="10px" width="200px" height="300px" display="flex" bgcolor="lightcoral"  justifyContent="center" flexDirection="column" gap="10px"position="relative">
                      {(failReport.fail_new_screen) && <Box sx={{height:"calc(100% - 20px)", position:"relative"}}><Image fill src={failReport.fail_new_screen} alt="화면 이미지"/></Box>}
                    </Box>
                       </Box>
