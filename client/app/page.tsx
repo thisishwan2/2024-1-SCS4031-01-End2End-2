@@ -174,7 +174,7 @@ const RunDialog:React.FC<DialogProps> = ({open, onClose}) => {
   }
   const handleRun = () => {
     postRunAll(name, {
-      onSuccess:() => {
+      onSettled:() => {
         queryClient.invalidateQueries({queryKey: ['scenarios']})
         onClose();
       }
