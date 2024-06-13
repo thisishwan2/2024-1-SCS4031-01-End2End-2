@@ -173,12 +173,9 @@ const RunDialog:React.FC<DialogProps> = ({open, onClose}) => {
     setName(e.target.value);
   }
   const handleRun = () => {
-    postRunAll(name, {
-      onSettled:() => {
-        queryClient.invalidateQueries({queryKey: ['scenarios']})
-        onClose();
-      }
-    })
+    postRunAll(name);
+    queryClient.invalidateQueries({queryKey: ['scenarios']})
+    onClose();
   }
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xl" sx={{padding:"20px"}} >
