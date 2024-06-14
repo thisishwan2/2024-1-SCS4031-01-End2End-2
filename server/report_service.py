@@ -6,13 +6,15 @@ from bson.objectid import ObjectId
 def get_reports():
     if request.method == 'GET':
         report_list = app.config['report']
-        cursor = report_list.find({}, {'report_name': 1, 'created_at': 1})
+        cursor = report_list.find({}, {'report_name': 1, 'create_at': 1})
 
         reports = []
         for doc in cursor:
             # ObjectId를 문자열로 변환
             doc['_id'] = str(doc['_id']) if '_id' in doc else None
+            doc['created_at'] = str(doc.get('create_at'))
             reports.append(doc)
+        print(reports)
 
         return jsonify(list(reports))
 
