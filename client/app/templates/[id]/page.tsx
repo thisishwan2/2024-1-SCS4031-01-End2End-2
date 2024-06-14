@@ -100,7 +100,7 @@ export default function Home() {
                 </Button>
                 <StatusIcon status={templateDetail?.run_status}/>
               </Box>
-              <Box display="flex" gap="40px" alignItems="center" marginBottom="40px"  overflow="scroll">
+              <Box display="flex" gap="40px" alignItems="center" marginBottom="40px"  overflow="scroll" paddingBottom="50px">
               {templateDetail?.template?.map((item,index) => item.ui_data !== undefined 
                ? (<Box key={item.ui_data|| index}  padding="5px"borderRadius="10px"bgcolor="#F8DEDE" minWidth="200px" height="300px" display="flex" flexDirection="column" gap="10px"position="relative">
                 <StatusIcon status={item.status}/>
