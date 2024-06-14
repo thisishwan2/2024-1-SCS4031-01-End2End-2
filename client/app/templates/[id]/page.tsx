@@ -100,9 +100,9 @@ export default function Home() {
                 </Button>
                 <StatusIcon status={templateDetail?.run_status}/>
               </Box>
-              <Box display="flex" gap="40px" alignItems="center" marginBottom="40px">
+              <Box display="flex" gap="40px" alignItems="center" marginBottom="40px"  overflow="scroll">
               {templateDetail?.template?.map((item,index) => item.ui_data !== undefined 
-               ? (<Box key={item.ui_data|| index}  padding="5px"borderRadius="10px"bgcolor="#F8DEDE" width="200px" height="300px" display="flex" flexDirection="column" gap="10px"position="relative">
+               ? (<Box key={item.ui_data|| index}  padding="5px"borderRadius="10px"bgcolor="#F8DEDE" minWidth="200px" height="300px" display="flex" flexDirection="column" gap="10px"position="relative">
                 <StatusIcon status={item.status}/>
                 <Button variant="contained" onClick={handlehierarchyButtonClick(index)} sx={{position:"absolute", bottom: '-50px', left: "50%", transform: "translateX(-50%)", whiteSpace:"nowrap"}}>
                   화면정보등록
@@ -128,7 +128,7 @@ const ActionBox = ({onClick, action, status}: {onClick:(action:string) => void; 
   const handleClick = () => {
     onClick(actionText);
   }
-  return (<Box bgcolor="white" width="200px" height="300px" border="1px solid lightgrey" borderRadius="10px" padding="5px">
+  return (<Box bgcolor="white" minWidth="200px" height="300px" border="1px solid lightgrey" borderRadius="10px" padding="5px">
     <Box display="flex"  borderBottom="1px solid lightgrey" marginBottom="30px">
 
     <StatusIcon status={status} />
