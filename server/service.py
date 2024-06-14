@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import subprocess
 import time
 
 from bson import errors
@@ -274,10 +275,48 @@ def run_scenario(scenario_id):
 
         else: # 다른화면인 경우
             ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
+            while True:
+                adb_function.back(None)
+                result = subprocess.run(
+                    ["adb", "shell", "dumpsys", "window", "windows", "|", "grep", "-E", "'mCurrentFocus|mFocusedApp'"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True
+                )
+
+                # 결과 파싱
+                output = result.stdout.strip().split('\n')
+                for line in output:
+                    if 'mCurrentFocus' in line:
+                        mCurrentFocus = line.split('=')[1].strip()
+                        print(mCurrentFocus)
+
+                if mCurrentFocus == 'Window{9e54403d0 u0 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity}':
+                    break
+
             return error_response()
     except Exception as e:
         # 첫 화면에서 실패했다면 모든 태스크는 실패 처리
         ui_compare_fail(now_index, scenario_id, scenario_list, scenario_seq)
+        while True:
+            adb_function.back(None)
+            result = subprocess.run(
+                ["adb", "shell", "dumpsys", "window", "windows", "|", "grep", "-E", "'mCurrentFocus|mFocusedApp'"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+
+            # 결과 파싱
+            output = result.stdout.strip().split('\n')
+            for line in output:
+                if 'mCurrentFocus' in line:
+                    mCurrentFocus = line.split('=')[1].strip()
+                    print(mCurrentFocus)
+
+            if mCurrentFocus == 'Window{9e54403d0 u0 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity}':
+                break
+
         return error_response()
     result = None
     # 이후 태스크 실행 및 검증
@@ -302,6 +341,26 @@ def run_scenario(scenario_id):
                 )
             except:
                 ui_compare_fail(index, scenario_id, scenario_list, scenario_seq)
+                while True:
+                    adb_function.back(None)
+                    result = subprocess.run(
+                        ["adb", "shell", "dumpsys", "window", "windows", "|", "grep", "-E",
+                         "'mCurrentFocus|mFocusedApp'"],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True
+                    )
+
+                    # 결과 파싱
+                    output = result.stdout.strip().split('\n')
+                    for line in output:
+                        if 'mCurrentFocus' in line:
+                            mCurrentFocus = line.split('=')[1].strip()
+                            print(mCurrentFocus)
+
+                    if mCurrentFocus == 'Window{9e54403d0 u0 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity}':
+                        break
+
                 return error_response()
 
         # 화면 검증(여기서 부터 수정해야 함. abd function쪽 수정과 같이 하기)
@@ -340,17 +399,77 @@ def run_scenario(scenario_id):
                 else:
                     print(Exception)
                     ui_compare_fail(index, scenario_id, scenario_list, scenario_seq)
+                    while True:
+                        adb_function.back(None)
+                        result = subprocess.run(
+                            ["adb", "shell", "dumpsys", "window", "windows", "|", "grep", "-E",
+                             "'mCurrentFocus|mFocusedApp'"],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True
+                        )
+
+                        # 결과 파싱
+                        output = result.stdout.strip().split('\n')
+                        for line in output:
+                            if 'mCurrentFocus' in line:
+                                mCurrentFocus = line.split('=')[1].strip()
+                                print(mCurrentFocus)
+
+                        if mCurrentFocus == 'Window{9e54403d0 u0 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity}':
+                            break
+
                     return error_response()
 
             except Exception as e:
                 print(e)
                 ui_compare_fail(index, scenario_id, scenario_list, scenario_seq)
+                while True:
+                    adb_function.back(None)
+                    result = subprocess.run(
+                        ["adb", "shell", "dumpsys", "window", "windows", "|", "grep", "-E",
+                         "'mCurrentFocus|mFocusedApp'"],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True
+                    )
+
+                    # 결과 파싱
+                    output = result.stdout.strip().split('\n')
+                    for line in output:
+                        if 'mCurrentFocus' in line:
+                            mCurrentFocus = line.split('=')[1].strip()
+                            print(mCurrentFocus)
+
+                    if mCurrentFocus == 'Window{9e54403d0 u0 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity}':
+                        break
+
                 return error_response()
 
     scenario_list.update_one(
         {'_id': ObjectId(scenario_id)},
         {'$set': {'run_status': 'success'}}
     )
+
+    while True:
+        adb_function.back(None)
+        result = subprocess.run(
+            ["adb", "shell", "dumpsys", "window", "windows", "|", "grep", "-E", "'mCurrentFocus|mFocusedApp'"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        # 결과 파싱
+        output = result.stdout.strip().split('\n')
+        for line in output:
+            if 'mCurrentFocus' in line:
+                mCurrentFocus = line.split('=')[1].strip()
+                print(mCurrentFocus)
+
+        if mCurrentFocus == 'Window{9e54403d0 u0 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity}':
+            break
+
     return jsonify({'message': 'Success'})
 
 # 전체 시나리오 실행
@@ -373,9 +492,24 @@ def run_all_scenario():
         response = run_scenario_report(scenario_id, report_obj_id)
         print(response.status_code)
 
-        adb_function.home(None)
-        adb_function.home(None)
+        while True:
+            adb_function.back(None)
+            result = subprocess.run(
+                ["adb", "shell", "dumpsys", "window", "windows", "|", "grep", "-E", "'mCurrentFocus|mFocusedApp'"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
 
+            # 결과 파싱
+            output = result.stdout.strip().split('\n')
+            for line in output:
+                if 'mCurrentFocus' in line:
+                    mCurrentFocus = line.split('=')[1].strip()
+                    print(mCurrentFocus)
+
+            if mCurrentFocus == 'Window{9e54403d0 u0 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity}':
+                break
 
     # 시나리오 전체 조회하고, 요약 보고서 생성
     all_scenario = scenario_list.find()
@@ -519,6 +653,27 @@ def run_scenario_report(scenario_id, report_obj_id):
                 )
             except:
                 ui_compare_fail(index, scenario_id, scenario_list, scenario_seq)
+
+                while True:
+                    adb_function.back(None)
+                    result = subprocess.run(
+                        ["adb", "shell", "dumpsys", "window", "windows", "|", "grep", "-E",
+                         "'mCurrentFocus|mFocusedApp'"],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True
+                    )
+
+                    # 결과 파싱
+                    output = result.stdout.strip().split('\n')
+                    for line in output:
+                        if 'mCurrentFocus' in line:
+                            mCurrentFocus = line.split('=')[1].strip()
+                            print(mCurrentFocus)
+
+                    if mCurrentFocus == 'Window{9e54403d0 u0 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity}':
+                        break
+
                 return error_response()
 
         # 화면 검증(여기서 부터 수정해야 함. abd function쪽 수정과 같이 하기)
@@ -578,11 +733,53 @@ def run_scenario_report(scenario_id, report_obj_id):
                         {'_id': ObjectId(report_obj_id)},
                         {'$push': {'fail_report': fail_report}}
                     )
+
+                    while True:
+                        adb_function.back(None)
+                        result = subprocess.run(
+                            ["adb", "shell", "dumpsys", "window", "windows", "|", "grep", "-E",
+                             "'mCurrentFocus|mFocusedApp'"],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True
+                        )
+
+                        # 결과 파싱
+                        output = result.stdout.strip().split('\n')
+                        for line in output:
+                            if 'mCurrentFocus' in line:
+                                mCurrentFocus = line.split('=')[1].strip()
+                                print(mCurrentFocus)
+
+                        if mCurrentFocus == 'Window{9e54403d0 u0 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity}':
+                            break
+
                     return error_response()
 
             except Exception as e:
                 print(e)
                 ui_compare_fail(index, scenario_id, scenario_list, scenario_seq)
+
+                while True:
+                    adb_function.back(None)
+                    result = subprocess.run(
+                        ["adb", "shell", "dumpsys", "window", "windows", "|", "grep", "-E",
+                         "'mCurrentFocus|mFocusedApp'"],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True
+                    )
+
+                    # 결과 파싱
+                    output = result.stdout.strip().split('\n')
+                    for line in output:
+                        if 'mCurrentFocus' in line:
+                            mCurrentFocus = line.split('=')[1].strip()
+                            print(mCurrentFocus)
+
+                    if mCurrentFocus == 'Window{9e54403d0 u0 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity}':
+                        break
+
                 return error_response()
 
     scenario_list.update_one(
